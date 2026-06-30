@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIU Toolkits | Question Bank Admin</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        :root {
+            --uiu-orange: #F37021;
+            --uiu-blue: #005696;
+            --bg-body: #fdf8f5;
+            --bg-container: #ffffff;
+            --bg-input: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #ffdcb0;
+            --primary-color: #F37021;
+            --secondary-color: #005696;
+            --shadow: 0 8px 30px rgba(243, 112, 33, 0.12);
+            --gradient-primary: linear-gradient(135deg, #F37021 0%, #ff985c 100%);
+            --gradient-secondary: linear-gradient(135deg, #005696 0%, #0081d1 100%);
+            --success-bg: #e8f5e9;
+            --success-text: #1b5e20;
+            --danger-bg: #ffebee;
+            --danger-text: #d32f2f;
+            --warning-bg: #fff3e0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-main);
+            background: linear-gradient(135deg, var(--bg-body) 0%, #fff0e6 100%);
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 3px solid transparent;
+            border-image: var(--gradient-primary);
+            border-image-slice: 1;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-color);
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .logo img {
+            width: auto;
+            height: 30px;
+            border-radius: 4px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 24px auto;
+            padding: 0 20px 40px;
+        }
+
+        .hero {
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            color: var(--primary-color);
+            font-size: 2.3rem;
+        }
+
+        .subtitle,
+        .muted {
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
+        .card {
+            padding: 22px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--bg-container);
+            box-shadow: var(--shadow);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .auth-actions,
+        .item-actions,
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button,
+        .link-button {
+            min-height: 42px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+        }
+
+        button:hover,
+        .link-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+        }
+
+        .btn-secondary,
+        .link-button {
+            background: var(--gradient-secondary);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #34ce57);
+        }
+
+        .btn-danger {
+            background: #ff4d4d;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-height: 46px;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-input);
+            color: var(--text-main);
+            font-size: 1rem;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .status {
+            margin: 14px 0;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .status.info {
+            background: var(--warning-bg);
+            color: var(--secondary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .status.success {
+            background: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid #a5d6a7;
+        }
+
+        .status.error {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border: 1px solid var(--danger-text);
+        }
+
+        .list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .paper {
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--primary-color);
+            border-radius: 12px;
+            background: #ffffff;
+        }
+
+        .paper h2 {
+            margin: 0 0 8px;
+            color: var(--primary-color);
+            font-size: 1.25rem;
+        }
+
+        .pill {
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: var(--warning-bg);
+            color: var(--text-main);
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .empty {
+            padding: 28px 16px;
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-body);
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            nav,
+            .toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .container {
+                padding: 0 10px 28px;
+                margin-top: 12px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .filters {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">
+            <img src="logo.png" alt="UIU Toolkits Logo">
+            UIU Toolkits Admin
+        </a>
+        <div class="auth-actions">
+            <button id="loginBtn" class="btn-primary">Sign In with Google</button>
+            <button id="logoutBtn" class="btn-danger" style="display: none;">Sign Out</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Question Bank Approval</h1>
+            <p class="subtitle">Review submitted question PDFs before they appear in the public Question Bank.</p>
+        </section>
+
+        <section class="card">
+            <div class="toolbar">
+                <div>
+                    <strong id="adminIdentity">Not signed in</strong>
+                    <p class="muted" style="margin: 5px 0 0;">Only users listed in Firestore under <code>admins/{uid}</code> can approve or reject papers.</p>
+                </div>
+                <span class="pill" id="pendingCount">0 pending</span>
+            </div>
+
+            <div id="statusBox" class="status info">Sign in to load pending submissions.</div>
+
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Search title, course, trimester, submitter...">
+                <select id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="Midterm">Midterm</option>
+                    <option value="Final">Final</option>
+                    <option value="Quiz">Quiz</option>
+                    <option value="Assignment">Assignment</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div id="paperList" class="list">
+                <div class="empty">Pending submissions will appear here after admin sign-in.</div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+        import {
+            collection,
+            doc,
+            getDoc,
+            getFirestore,
+            onSnapshot,
+            query,
+            serverTimestamp,
+            updateDoc,
+            where
+        } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+        import {
+            getAuth,
+            GoogleAuthProvider,
+            onAuthStateChanged,
+            signInWithPopup,
+            signOut
+        } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: 'AIzaSyBVWZIs2xgY0TDUPnhkYKnWGR3x9u5zrLM',
+            authDomain: 'uiu-toolkits.firebaseapp.com',
+            projectId: 'uiu-toolkits',
+            storageBucket: 'uiu-toolkits.firebasestorage.app',
+            messagingSenderId: '1036001106248'
+        };
+
+        const QUESTION_COLLECTION = 'questionPapers';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+        let isAdmin = false;
+        let pendingPapers = [];
+        let unsubscribePending = null;
+
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const statusBox = document.getElementById('statusBox');
+        const paperList = document.getElementById('paperList');
+        const adminIdentity = document.getElementById('adminIdentity');
+        const pendingCount = document.getElementById('pendingCount');
+        const searchInput = document.getElementById('searchInput');
+        const typeFilter = document.getElementById('typeFilter');
+
+        function setStatus(message, type = 'info') {
+            statusBox.textContent = message;
+            statusBox.className = `status ${type}`;
+        }
+
+        function normalizeText(value) {
+            return String(value || '').trim();
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatFirestoreDate(value) {
+            if (!value) return 'Just now';
+            const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function paperFromDoc(snapshot) {
+            return {
+                id: snapshot.id,
+                ...snapshot.data()
+            };
+        }
+
+        function sortNewestFirst(a, b) {
+            const aMs = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
+            const bMs = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
+            return bMs - aMs;
+        }
+
+        function renderPapers() {
+            const search = normalizeText(searchInput.value).toLowerCase();
+            const type = normalizeText(typeFilter.value);
+
+            const filtered = pendingPapers.filter(paper => {
+                const haystack = [
+                    paper.title,
+                    paper.courseCode,
+                    paper.trimester,
+                    paper.examType,
+                    paper.submitterName,
+                    paper.submitterId,
+                    paper.originalFilename
+                ].join(' ').toLowerCase();
+
+                return (!search || haystack.includes(search)) && (!type || paper.examType === type);
+            });
+
+            pendingCount.textContent = `${pendingPapers.length} pending`;
+
+            if (!isAdmin) {
+                paperList.innerHTML = '<div class="empty">Sign in with an approved admin account to review submissions.</div>';
+                return;
+            }
+
+            if (filtered.length === 0) {
+                paperList.innerHTML = '<div class="empty">No pending question PDFs match the current filter.</div>';
+                return;
+            }
+
+            paperList.innerHTML = filtered.map(paper => `
+                <article class="paper">
+                    <h2>${escapeHtml(paper.title)}</h2>
+                    <div class="meta">
+                        <span class="pill">${escapeHtml(paper.courseCode)}</span>
+                        <span class="pill">${escapeHtml(paper.examType)}</span>
+                        <span class="pill">${escapeHtml(paper.trimester)}</span>
+                        <span class="pill">${formatFirestoreDate(paper.submittedAt)}</span>
+                    </div>
+                    <p class="muted"><strong>Submitted by:</strong> ${escapeHtml(paper.submitterName)} (${escapeHtml(paper.submitterId)})</p>
+                    <p class="muted"><strong>File:</strong> ${escapeHtml(paper.originalFilename || 'Question PDF')}</p>
+                    <div class="item-actions">
+                        <a class="link-button" href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">Open PDF</a>
+                        <button class="btn-success" data-approve="${paper.id}">Approve</button>
+                        <button class="btn-danger" data-reject="${paper.id}">Reject</button>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function listenForPendingPapers() {
+            if (unsubscribePending) {
+                unsubscribePending();
+                unsubscribePending = null;
+            }
+
+            if (!isAdmin) {
+                pendingPapers = [];
+                renderPapers();
+                return;
+            }
+
+            const pendingQuery = query(
+                collection(db, QUESTION_COLLECTION),
+                where('status', '==', 'pending')
+            );
+
+            unsubscribePending = onSnapshot(pendingQuery, snapshot => {
+                pendingPapers = snapshot.docs.map(paperFromDoc).sort(sortNewestFirst);
+                renderPapers();
+                setStatus('Pending submissions loaded.', 'success');
+            }, error => {
+                console.error('Could not load pending submissions:', error);
+                setStatus('Could not load pending submissions. Check Firestore rules.', 'error');
+            });
+        }
+
+        async function checkAdminAccess(user) {
+            if (!user) return false;
+            const adminSnapshot = await getDoc(doc(db, 'admins', user.uid));
+            return adminSnapshot.exists();
+        }
+
+        async function updateQuestionStatus(paperId, status) {
+            if (!isAdmin || !currentUser) {
+                setStatus('Only a signed-in admin can update question papers.', 'error');
+                return;
+            }
+
+            const isApproval = status === 'approved';
+            const payload = isApproval
+                ? {
+                    status: 'approved',
+                    approvedAt: serverTimestamp(),
+                    approvedByUid: currentUser.uid,
+                    approvedByEmail: currentUser.email || ''
+                }
+                : {
+                    status: 'rejected',
+                    rejectedAt: serverTimestamp(),
+                    rejectedByUid: currentUser.uid,
+                    rejectedByEmail: currentUser.email || ''
+                };
+
+            try {
+                await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
+                setStatus(isApproval ? 'Question paper approved.' : 'Question paper rejected.', 'success');
+            } catch (error) {
+                console.error('Could not update question status:', error);
+                setStatus(error.message || 'Could not update question paper.', 'error');
+            }
+        }
+
+        loginBtn.addEventListener('click', async () => {
+            try {
+                loginBtn.disabled = true;
+                await signInWithPopup(auth, new GoogleAuthProvider());
+            } catch (error) {
+                console.error('Sign in failed:', error);
+                setStatus(error.message || 'Google sign-in failed.', 'error');
+            } finally {
+                loginBtn.disabled = false;
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => signOut(auth));
+        searchInput.addEventListener('input', renderPapers);
+        typeFilter.addEventListener('change', renderPapers);
+
+        paperList.addEventListener('click', event => {
+            const approveId = event.target.getAttribute('data-approve');
+            const rejectId = event.target.getAttribute('data-reject');
+            if (approveId) updateQuestionStatus(approveId, 'approved');
+            if (rejectId) updateQuestionStatus(rejectId, 'rejected');
+        });
+
+        onAuthStateChanged(auth, async user => {
+            currentUser = user;
+            isAdmin = false;
+
+            if (!user) {
+                adminIdentity.textContent = 'Not signed in';
+                loginBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                setStatus('Sign in to load pending submissions.', 'info');
+                listenForPendingPapers();
+                return;
+            }
+
+            adminIdentity.textContent = `Signed in as ${user.email}`;
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+
+            try {
+                isAdmin = await checkAdminAccess(user);
+                if (!isAdmin) {
+                    setStatus(`${user.email} is signed in but is not listed as an admin.`, 'error');
+                    listenForPendingPapers();
+                    return;
+                }
+
+                setStatus('Admin verified. Loading pending submissions...', 'success');
+                listenForPendingPapers();
+            } catch (error) {
+                console.error('Admin verification failed:', error);
+                setStatus('Could not verify admin access. Check Firestore admin document rules.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
