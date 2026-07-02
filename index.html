@@ -350,10 +350,11 @@
             where
         } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
         import {
+            getRedirectResult,
             getAuth,
             GoogleAuthProvider,
             onAuthStateChanged,
-            signInWithPopup,
+            signInWithRedirect,
             signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
@@ -660,7 +661,21 @@
             try {
                 loginBtn.disabled = true;
                 loginPanelBtn.disabled = true;
-                const result = await signInWithPopup(auth, googleProvider);
+                setStatus('Redirecting to Google sign-in...', 'info');
+                await signInWithRedirect(auth, googleProvider);
+            } catch (error) {
+                console.error('Sign in failed:', error);
+                setStatus(error.message || 'Google sign-in failed.', 'error');
+                loginBtn.disabled = false;
+                loginPanelBtn.disabled = false;
+            }
+        }
+
+        async function loadRedirectSignInResult() {
+            try {
+                const result = await getRedirectResult(auth);
+                if (!result) return;
+
                 const credential = GoogleAuthProvider.credentialFromResult(result);
                 gmailAccessToken = credential?.accessToken || '';
 
@@ -668,14 +683,18 @@
                     setStatus('Please login with a UIU university email ending like @bscse.uiu.ac.bd.', 'error');
                     await signOut(auth);
                 }
-            } catch (error) {
-                console.error('Sign in failed:', error);
-                setStatus(error.message || 'Google sign-in failed.', 'error');
             } finally {
                 loginBtn.disabled = false;
                 loginPanelBtn.disabled = false;
             }
         }
+
+        loadRedirectSignInResult().catch(error => {
+            console.error('Redirect sign-in failed:', error);
+            setStatus(error.message || 'Google sign-in redirect failed.', 'error');
+            loginBtn.disabled = false;
+            loginPanelBtn.disabled = false;
+        });
 
         loginBtn.addEventListener('click', loginWithGoogle);
         loginPanelBtn.addEventListener('click', loginWithGoogle);
