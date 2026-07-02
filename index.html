@@ -131,6 +131,46 @@
             align-items: center;
         }
 
+        .profile-badge {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            min-height: 42px;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--warning-bg);
+        }
+
+        .profile-copy {
+            display: grid;
+            gap: 2px;
+            line-height: 1.1;
+        }
+
+        .profile-name {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .profile-email {
+            max-width: 230px;
+            overflow: hidden;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         button,
         .link-button {
             min-height: 42px;
@@ -288,6 +328,13 @@
             UIU Toolkits Admin
         </a>
         <div class="auth-actions">
+            <div id="profileBox" class="profile-badge">
+                <img id="profileAvatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
+                <div class="profile-copy">
+                    <span id="profileName" class="profile-name">Not signed in</span>
+                    <span id="profileEmail" class="profile-email">Waiting for login</span>
+                </div>
+            </div>
             <button id="loginBtn" class="btn-primary">Sign In with Google</button>
             <button id="logoutBtn" class="btn-danger" style="display: none;">Sign Out</button>
         </div>
@@ -369,6 +416,7 @@
         };
 
         const QUESTION_COLLECTION = 'questionPapers';
+        const REDIRECT_STARTED_KEY = 'uiuAdminRedirectStarted';
 
         const app = initializeApp(firebaseConfig);
         isSupported().then(supported => {
@@ -389,6 +437,10 @@
         const loginBtn = document.getElementById('loginBtn');
         const loginPanelBtn = document.getElementById('loginPanelBtn');
         const logoutBtn = document.getElementById('logoutBtn');
+        const profileBox = document.getElementById('profileBox');
+        const profileAvatar = document.getElementById('profileAvatar');
+        const profileName = document.getElementById('profileName');
+        const profileEmail = document.getElementById('profileEmail');
         const loginPanel = document.getElementById('loginPanel');
         const reviewPanel = document.getElementById('reviewPanel');
         const loginStatusBox = document.getElementById('loginStatusBox');
@@ -404,6 +456,35 @@
             statusBox.className = `status ${type}`;
             loginStatusBox.textContent = message;
             loginStatusBox.className = `status ${type}`;
+        }
+
+        function setSignedOutUi(message = 'Sign in to load pending submissions.') {
+            adminIdentity.textContent = 'Not signed in';
+            profileBox.style.display = 'none';
+            profileAvatar.removeAttribute('src');
+            profileName.textContent = 'Not signed in';
+            profileEmail.textContent = 'Waiting for login';
+            loginBtn.style.display = 'inline-block';
+            loginBtn.disabled = false;
+            loginPanelBtn.disabled = false;
+            logoutBtn.style.display = 'none';
+            loginPanel.style.display = 'block';
+            reviewPanel.style.display = 'none';
+            setStatus(message, 'info');
+            listenForPendingPapers();
+        }
+
+        function setSignedInUi(user) {
+            const displayName = user.displayName || getEmailHandle(user.email);
+            adminIdentity.textContent = `Signed in as ${user.email}`;
+            profileBox.style.display = 'flex';
+            profileName.textContent = displayName;
+            profileEmail.textContent = user.email || 'No email available';
+            profileAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
+            loginBtn.style.display = 'none';
+            loginBtn.disabled = false;
+            loginPanelBtn.disabled = false;
+            logoutBtn.style.display = 'inline-block';
         }
 
         function normalizeText(value) {
@@ -662,9 +743,11 @@
                 loginBtn.disabled = true;
                 loginPanelBtn.disabled = true;
                 setStatus('Redirecting to Google sign-in...', 'info');
+                sessionStorage.setItem(REDIRECT_STARTED_KEY, '1');
                 await signInWithRedirect(auth, googleProvider);
             } catch (error) {
                 console.error('Sign in failed:', error);
+                sessionStorage.removeItem(REDIRECT_STARTED_KEY);
                 setStatus(error.message || 'Google sign-in failed.', 'error');
                 loginBtn.disabled = false;
                 loginPanelBtn.disabled = false;
@@ -673,7 +756,12 @@
 
         async function loadRedirectSignInResult() {
             try {
+                if (sessionStorage.getItem(REDIRECT_STARTED_KEY)) {
+                    setStatus('Finishing Google sign-in...', 'info');
+                }
+
                 const result = await getRedirectResult(auth);
+                sessionStorage.removeItem(REDIRECT_STARTED_KEY);
                 if (!result) return;
 
                 const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -691,6 +779,7 @@
 
         loadRedirectSignInResult().catch(error => {
             console.error('Redirect sign-in failed:', error);
+            sessionStorage.removeItem(REDIRECT_STARTED_KEY);
             setStatus(error.message || 'Google sign-in redirect failed.', 'error');
             loginBtn.disabled = false;
             loginPanelBtn.disabled = false;
@@ -701,6 +790,7 @@
 
         logoutBtn.addEventListener('click', () => {
             gmailAccessToken = '';
+            sessionStorage.removeItem(REDIRECT_STARTED_KEY);
             signOut(auth);
         });
         searchInput.addEventListener('input', renderPapers);
@@ -718,13 +808,7 @@
             isAdmin = false;
 
             if (!user) {
-                adminIdentity.textContent = 'Not signed in';
-                loginBtn.style.display = 'inline-block';
-                logoutBtn.style.display = 'none';
-                loginPanel.style.display = 'block';
-                reviewPanel.style.display = 'none';
-                setStatus('Sign in to load pending submissions.', 'info');
-                listenForPendingPapers();
+                setSignedOutUi();
                 return;
             }
 
@@ -734,9 +818,7 @@
                 return;
             }
 
-            adminIdentity.textContent = `Signed in as ${user.email}`;
-            loginBtn.style.display = 'none';
-            logoutBtn.style.display = 'inline-block';
+            setSignedInUi(user);
 
             try {
                 isAdmin = await checkAdminAccess(user);
