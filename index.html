@@ -232,6 +232,42 @@
             margin-bottom: 18px;
         }
 
+        .section-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .tab-button {
+            border: 2px solid var(--border-color);
+            background: #ffffff;
+            color: var(--secondary-color);
+        }
+
+        .tab-button.active {
+            border-color: transparent;
+            background: var(--gradient-secondary);
+            color: #ffffff;
+        }
+
+        .profile-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-body);
+        }
+
+        .profile-summary .profile-avatar {
+            width: 52px;
+            height: 52px;
+        }
+
         .status {
             margin: 14px 0;
             padding: 12px 14px;
@@ -348,7 +384,7 @@
 
         <section class="card login-panel" id="loginPanel">
             <h2 style="color: var(--primary-color); margin-top: 0;">Admin Login</h2>
-            <p class="muted">Sign in with your verified UIU university email to access the moderation queue.</p>
+            <p class="muted">Sign in with your UIU university email and allow Gmail send permission so approval emails can be sent to students.</p>
             <button id="loginPanelBtn" class="btn-primary">Login with University Mail</button>
             <div id="loginStatusBox" class="status info" style="margin-bottom: 0;">Waiting for admin login.</div>
         </section>
@@ -357,12 +393,26 @@
             <div class="toolbar">
                 <div>
                     <strong id="adminIdentity">Not signed in</strong>
-                    <p class="muted" style="margin: 5px 0 0;">Only users listed in Firestore under <code>admins/{uid}</code> can approve or reject papers.</p>
+                    <p class="muted" style="margin: 5px 0 0;">Only users listed in Firestore under <code>admins/{uid}</code> can approve or reject papers. Approval sends an email notification to the submitter.</p>
                 </div>
                 <span class="pill" id="pendingCount">0 pending</span>
             </div>
 
+            <div class="profile-summary">
+                <img id="dashboardAvatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
+                <div>
+                    <strong id="dashboardName">Not signed in</strong>
+                    <p id="dashboardEmail" class="muted" style="margin: 4px 0 0;">Waiting for login</p>
+                    <p id="dashboardUid" class="muted" style="margin: 4px 0 0;">UID will appear after login</p>
+                </div>
+            </div>
+
             <div id="statusBox" class="status info">Sign in to load pending submissions.</div>
+
+            <div class="section-tabs" aria-label="Question status sections">
+                <button id="pendingTabBtn" class="tab-button active" type="button">Pending Questions</button>
+                <button id="approvedTabBtn" class="tab-button" type="button">Approved Questions</button>
+            </div>
 
             <div class="filters">
                 <input type="text" id="searchInput" placeholder="Search course name, code, trimester, or submitter email...">
@@ -417,6 +467,7 @@
 
         const QUESTION_COLLECTION = 'questionPapers';
         const REDIRECT_STARTED_KEY = 'uiuAdminRedirectStarted';
+        const ADMIN_EMAILS = ['ahamim2510370@bscse.uiu.ac.bd'];
 
         const app = initializeApp(firebaseConfig);
         isSupported().then(supported => {
@@ -425,11 +476,15 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         const googleProvider = new GoogleAuthProvider();
+        googleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+        googleProvider.setCustomParameters({ prompt: 'consent' });
 
         let currentUser = null;
         let isAdmin = false;
-        let pendingPapers = [];
-        let unsubscribePending = null;
+        let gmailAccessToken = '';
+        let currentPapers = [];
+        let activeQuestionStatus = 'pending';
+        let unsubscribeQuestions = null;
 
         const loginBtn = document.getElementById('loginBtn');
         const loginPanelBtn = document.getElementById('loginPanelBtn');
@@ -438,6 +493,10 @@
         const profileAvatar = document.getElementById('profileAvatar');
         const profileName = document.getElementById('profileName');
         const profileEmail = document.getElementById('profileEmail');
+        const dashboardAvatar = document.getElementById('dashboardAvatar');
+        const dashboardName = document.getElementById('dashboardName');
+        const dashboardEmail = document.getElementById('dashboardEmail');
+        const dashboardUid = document.getElementById('dashboardUid');
         const loginPanel = document.getElementById('loginPanel');
         const reviewPanel = document.getElementById('reviewPanel');
         const loginStatusBox = document.getElementById('loginStatusBox');
@@ -447,6 +506,8 @@
         const pendingCount = document.getElementById('pendingCount');
         const searchInput = document.getElementById('searchInput');
         const typeFilter = document.getElementById('typeFilter');
+        const pendingTabBtn = document.getElementById('pendingTabBtn');
+        const approvedTabBtn = document.getElementById('approvedTabBtn');
 
         function setStatus(message, type = 'info') {
             statusBox.textContent = message;
@@ -459,8 +520,12 @@
             adminIdentity.textContent = 'Not signed in';
             profileBox.style.display = 'none';
             profileAvatar.removeAttribute('src');
+            dashboardAvatar.removeAttribute('src');
             profileName.textContent = 'Not signed in';
             profileEmail.textContent = 'Waiting for login';
+            dashboardName.textContent = 'Not signed in';
+            dashboardEmail.textContent = 'Waiting for login';
+            dashboardUid.textContent = 'UID will appear after login';
             loginBtn.style.display = 'inline-block';
             loginBtn.disabled = false;
             loginPanelBtn.disabled = false;
@@ -468,7 +533,7 @@
             loginPanel.style.display = 'block';
             reviewPanel.style.display = 'none';
             setStatus(message, 'info');
-            listenForPendingPapers();
+            listenForQuestionPapers();
         }
 
         function setSignedInUi(user) {
@@ -478,6 +543,10 @@
             profileName.textContent = displayName;
             profileEmail.textContent = user.email || 'No email available';
             profileAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
+            dashboardName.textContent = displayName;
+            dashboardEmail.textContent = user.email || 'No email available';
+            dashboardUid.textContent = `UID: ${user.uid}`;
+            dashboardAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
             loginBtn.style.display = 'none';
             loginBtn.disabled = false;
             loginPanelBtn.disabled = false;
@@ -537,11 +606,22 @@
             return bMs - aMs;
         }
 
+        function getStatusLabel(status = activeQuestionStatus) {
+            return status === 'approved' ? 'approved' : 'pending';
+        }
+
+        function setActiveQuestionStatus(status) {
+            activeQuestionStatus = status === 'approved' ? 'approved' : 'pending';
+            pendingTabBtn.classList.toggle('active', activeQuestionStatus === 'pending');
+            approvedTabBtn.classList.toggle('active', activeQuestionStatus === 'approved');
+            listenForQuestionPapers();
+        }
+
         function renderPapers() {
             const search = normalizeText(searchInput.value).toLowerCase();
             const type = normalizeText(typeFilter.value);
 
-            const filtered = pendingPapers.filter(paper => {
+            const filtered = currentPapers.filter(paper => {
                 const haystack = [
                     paper.title,
                     paper.courseName,
@@ -557,15 +637,16 @@
                 return (!search || haystack.includes(search)) && (!type || paper.examType === type);
             });
 
-            pendingCount.textContent = `${pendingPapers.length} pending`;
+            const statusLabel = getStatusLabel();
+            pendingCount.textContent = `${currentPapers.length} ${statusLabel}`;
 
             if (!isAdmin) {
-                paperList.innerHTML = '<div class="empty">Sign in with an approved admin account to review submissions.</div>';
+                paperList.innerHTML = '<div class="empty">Your profile loaded, but this account does not have admin access yet. Add this email to the admin allowlist or create <code>admins/{uid}</code> in Firestore.</div>';
                 return;
             }
 
             if (filtered.length === 0) {
-                paperList.innerHTML = '<div class="empty">No pending question PDFs match the current filter.</div>';
+                paperList.innerHTML = `<div class="empty">No ${statusLabel} question PDFs match the current filter.</div>`;
                 return;
             }
 
@@ -575,6 +656,10 @@
                     : (paper.title || paper.courseCode || 'Question Submission');
                 const solutionLink = paper.solutionPdfUrl
                     ? `<a class="link-button" href="${escapeHtml(paper.solutionPdfUrl)}" target="_blank" rel="noopener">Open Solution</a>`
+                    : '';
+                const reviewActions = activeQuestionStatus === 'pending'
+                    ? `<button class="btn-success" data-approve="${paper.id}">Approve</button>
+                        <button class="btn-danger" data-reject="${paper.id}">Reject</button>`
                     : '';
 
                 return `
@@ -592,45 +677,106 @@
                     <div class="item-actions">
                         <a class="link-button" href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">Open PDF</a>
                         ${solutionLink}
-                        <button class="btn-success" data-approve="${paper.id}">Approve</button>
-                        <button class="btn-danger" data-reject="${paper.id}">Reject</button>
+                        ${reviewActions}
                     </div>
                 </article>
                 `;
             }).join('');
         }
 
-        function listenForPendingPapers() {
-            if (unsubscribePending) {
-                unsubscribePending();
-                unsubscribePending = null;
+        function listenForQuestionPapers() {
+            if (unsubscribeQuestions) {
+                unsubscribeQuestions();
+                unsubscribeQuestions = null;
             }
 
             if (!isAdmin) {
-                pendingPapers = [];
+                currentPapers = [];
                 renderPapers();
                 return;
             }
 
-            const pendingQuery = query(
+            const statusLabel = getStatusLabel();
+            const questionQuery = query(
                 collection(db, QUESTION_COLLECTION),
-                where('status', '==', 'pending')
+                where('status', '==', activeQuestionStatus)
             );
 
-            unsubscribePending = onSnapshot(pendingQuery, snapshot => {
-                pendingPapers = snapshot.docs.map(paperFromDoc).sort(sortNewestFirst);
+            unsubscribeQuestions = onSnapshot(questionQuery, snapshot => {
+                currentPapers = snapshot.docs.map(paperFromDoc).sort(sortNewestFirst);
                 renderPapers();
-                setStatus('Pending submissions loaded.', 'success');
+                setStatus(`${statusLabel.charAt(0).toUpperCase()}${statusLabel.slice(1)} questions loaded.`, 'success');
             }, error => {
-                console.error('Could not load pending submissions:', error);
-                setStatus('Could not load pending submissions. Check Firestore rules.', 'error');
+                console.error(`Could not load ${statusLabel} submissions:`, error);
+                setStatus(`Could not load ${statusLabel} submissions. Check Firestore rules.`, 'error');
             });
         }
 
         async function checkAdminAccess(user) {
             if (!user) return false;
+            if (ADMIN_EMAILS.includes(normalizeText(user.email).toLowerCase())) return true;
             const adminSnapshot = await getDoc(doc(db, 'admins', user.uid));
             return adminSnapshot.exists();
+        }
+
+        function encodeBase64Url(value) {
+            return btoa(unescape(encodeURIComponent(value)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+
+        async function sendApprovalEmail(paper) {
+            if (!gmailAccessToken) {
+                setStatus('Approved, but email was not sent because Gmail permission is missing. Sign out and login again with Gmail permission.', 'info');
+                return false;
+            }
+
+            if (!paper.submitterEmail) return false;
+
+            const courseTitle = paper.courseName
+                ? `${paper.courseCode} - ${paper.courseName}`
+                : (paper.title || paper.courseCode || 'your submitted question');
+            const subject = `UIU Toolkits question approved: ${paper.courseCode || courseTitle}`;
+            const body = [
+                `Hello ${getEmailHandle(paper.submitterEmail)},`,
+                '',
+                `Your submitted question has been approved.`,
+                '',
+                `Course: ${courseTitle}`,
+                `Exam: ${paper.examType || 'N/A'}`,
+                `Trimester: ${getTrimesterLabel(paper.trimester)}`,
+                '',
+                `Question: ${paper.pdfUrl || 'N/A'}`,
+                paper.solutionPdfUrl ? `Solution: ${paper.solutionPdfUrl}` : '',
+                '',
+                'UIU Toolkits Admin'
+            ].filter(Boolean).join('\r\n');
+
+            const rawMessage = [
+                `To: ${paper.submitterEmail}`,
+                `From: ${currentUser.email}`,
+                `Subject: ${subject}`,
+                'Content-Type: text/plain; charset="UTF-8"',
+                '',
+                body
+            ].join('\r\n');
+
+            const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${gmailAccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ raw: encodeBase64Url(rawMessage) })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Gmail notification failed.');
+            }
+
+            return true;
         }
 
         async function updateQuestionStatus(paperId, status) {
@@ -639,6 +785,7 @@
                 return;
             }
 
+            const paper = currentPapers.find(item => item.id === paperId);
             const isApproval = status === 'approved';
             const payload = isApproval
                 ? {
@@ -656,6 +803,17 @@
 
             try {
                 await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
+                if (isApproval && paper?.submitterEmail) {
+                    try {
+                        await sendApprovalEmail(paper);
+                        setStatus('Question paper approved and email notification sent.', 'success');
+                    } catch (emailError) {
+                        console.error('Approval email failed:', emailError);
+                        setStatus('Question paper approved, but the email notification failed. Check Gmail permission and API access.', 'info');
+                    }
+                    return;
+                }
+
                 setStatus(isApproval ? 'Question paper approved.' : 'Question paper rejected.', 'success');
             } catch (error) {
                 console.error('Could not update question status:', error);
@@ -689,8 +847,11 @@
                 sessionStorage.removeItem(REDIRECT_STARTED_KEY);
                 if (!result) return;
 
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                gmailAccessToken = credential?.accessToken || '';
+
                 if (!isUniversityEmail(result.user.email)) {
-                    setStatus('Please login with a UIU university email.', 'error');
+                    setStatus('Please login with a UIU university email ending like @bscse.uiu.ac.bd.', 'error');
                     await signOut(auth);
                 }
             } finally {
@@ -711,11 +872,14 @@
         loginPanelBtn.addEventListener('click', loginWithGoogle);
 
         logoutBtn.addEventListener('click', () => {
+            gmailAccessToken = '';
             sessionStorage.removeItem(REDIRECT_STARTED_KEY);
             signOut(auth);
         });
         searchInput.addEventListener('input', renderPapers);
         typeFilter.addEventListener('change', renderPapers);
+        pendingTabBtn.addEventListener('click', () => setActiveQuestionStatus('pending'));
+        approvedTabBtn.addEventListener('click', () => setActiveQuestionStatus('approved'));
 
         paperList.addEventListener('click', event => {
             const approveId = event.target.getAttribute('data-approve');
@@ -744,17 +908,17 @@
             try {
                 isAdmin = await checkAdminAccess(user);
                 if (!isAdmin) {
-                    setStatus(`${user.email} is signed in but is not listed as an admin.`, 'error');
-                    loginPanel.style.display = 'block';
-                    reviewPanel.style.display = 'none';
-                    listenForPendingPapers();
+                    loginPanel.style.display = 'none';
+                    reviewPanel.style.display = 'block';
+                    setStatus(`${user.email} is signed in, but this account is not listed as an admin yet.`, 'error');
+                    listenForQuestionPapers();
                     return;
                 }
 
                 loginPanel.style.display = 'none';
                 reviewPanel.style.display = 'block';
-                setStatus('Admin verified. Loading pending submissions...', 'success');
-                listenForPendingPapers();
+                setStatus('Admin verified. Loading questions...', 'success');
+                listenForQuestionPapers();
             } catch (error) {
                 console.error('Admin verification failed:', error);
                 setStatus('Could not verify admin access. Check Firestore admin document rules.', 'error');
