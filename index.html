@@ -492,7 +492,8 @@
         }
 
         function isUniversityEmail(value) {
-            return /^[a-z0-9._%+-]+@[a-z0-9-]+\.uiu\.ac\.bd$/i.test(normalizeText(value));
+            // Updated regex to accept standard admin emails (@uiu.ac.bd) and subdomains (@something.uiu.ac.bd)
+            return /^[a-z0-9._%+-]+@([a-z0-9-]+\.)*uiu\.ac\.bd$/i.test(normalizeText(value));
         }
 
         function getEmailHandle(email) {
