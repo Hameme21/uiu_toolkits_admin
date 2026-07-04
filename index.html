@@ -702,50 +702,6 @@
             approvedTabBtn.classList.toggle('active', activeQuestionStatus === 'approved');
             listenForQuestionPapers();
         }
-        async function fetchAndRenderQuestions() {
-            try {
-                const response = await fetch('/api/questions');
-                if (!response.ok) throw new Error('Network response failure');
-                
-                const questions = await response.json();
-                const container = document.getElementById('question-list-container');
-                
-                if (!container) return;
-                container.innerHTML = ''; 
-
-                if (questions.length === 0) {
-                    container.innerHTML = '<p>No questions uploaded yet.</p>';
-                    return;
-                }
-
-                questions.forEach(q => {
-                    const row = document.createElement('div');
-                    row.className = 'question-row';
-                    row.innerHTML = `
-                        <div class="field"><strong>Course:</strong> ${q.courseName}</div>
-                        <div class="field"><strong>Term:</strong> ${q.trm} (${q.year})</div>
-                        <div class="field"><strong>Admin:</strong> ${q.adminEmail}</div>
-                        <div class="field"><span class="status-badge synced">${q.status}</span></div>
-                        <div class="field"><a href="${q.fileUrl}" target="_blank">Download Paper</a></div>
-                    `;
-                    container.appendChild(row);
-                });
-            } catch (error) {
-                console.error('Failed to update dashboard view:', error);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchAndRenderQuestions();
-            setInterval(fetchAndRenderQuestions, 5000);
-        });
-// Initialize the data load when the browser window finishes processing HTML
-document.addEventListener('DOMContentLoaded', () => {
-    fetchAndRenderQuestions();
-    
-    // Check the server for changes automatically every 5000 milliseconds
-    setInterval(fetchAndRenderQuestions, 5000);
-});
 
         function renderPapers() {
             const search = normalizeText(searchInput.value).toLowerCase();
@@ -926,13 +882,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        async function updateQuestionStatus(paperId, status) {
+        function getCloudinaryAssets(paper) {
+            return [
+                {
+                    publicId: paper.cloudinaryPublicId,
+                    resourceType: paper.cloudinaryResourceType || 'raw',
+                    label: 'question PDF'
+                },
+                {
+                    publicId: paper.solutionCloudinaryPublicId,
+                    resourceType: paper.solutionCloudinaryResourceType || 'raw',
+                    label: 'solution PDF'
+                }
+            ].filter(asset => asset.publicId);
+        }
+
+        async function deleteRejectedCloudinaryAssets(paper) {
+            const assets = getCloudinaryAssets(paper);
+            if (assets.length === 0) return [];
+
+            const idToken = await currentUser.getIdToken();
+            const response = await fetch('/api/cloudinary/delete', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ assets })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Cloudinary delete failed.');
+            }
+
+            return data.deleted || [];
+        }
+
+        async function updateQuestionStatus(paperId, status, actionButton = null) {
             if (!isAdmin || !currentUser) {
                 setStatus('Only a signed-in admin can update question papers.', 'error');
                 return;
             }
 
             const isApproval = status === 'approved';
+            const paper = currentPapers.find(item => item.id === paperId);
+
+            if (!paper) {
+                setStatus('Could not find this question paper in the current list. Refresh and try again.', 'error');
+                return;
+            }
+
+            if (!isApproval && !window.confirm('Reject this submission and permanently delete its Cloudinary PDF files?')) {
+                return;
+            }
+
             const payload = isApproval
                 ? {
                     status: 'approved',
@@ -948,11 +952,22 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
+                if (actionButton) actionButton.disabled = true;
+                setStatus(isApproval ? 'Approving question paper...' : 'Deleting Cloudinary PDF files...', 'info');
+
+                if (!isApproval) {
+                    const deletedAssets = await deleteRejectedCloudinaryAssets(paper);
+                    payload.cloudinaryDeletedAt = serverTimestamp();
+                    payload.cloudinaryDeleteResults = deletedAssets;
+                }
+
                 await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
-                setStatus(isApproval ? 'Question paper approved. It is now visible in the public Question Bank.' : 'Question paper rejected.', 'success');
+                setStatus(isApproval ? 'Question paper approved. It is now visible in the public Question Bank.' : 'Question paper rejected and deleted from Cloudinary.', 'success');
             } catch (error) {
                 console.error('Could not update question status:', error);
                 setStatus(error.message || 'Could not update question paper.', 'error');
+            } finally {
+                if (actionButton) actionButton.disabled = false;
             }
         }
 
@@ -973,10 +988,13 @@ document.addEventListener('DOMContentLoaded', () => {
         approvedTabBtn.addEventListener('click', () => setActiveQuestionStatus('approved'));
 
         paperList.addEventListener('click', event => {
-            const approveId = event.target.getAttribute('data-approve');
-            const rejectId = event.target.getAttribute('data-reject');
-            if (approveId) updateQuestionStatus(approveId, 'approved');
-            if (rejectId) updateQuestionStatus(rejectId, 'rejected');
+            const actionButton = event.target.closest('button[data-approve], button[data-reject]');
+            if (!actionButton) return;
+
+            const approveId = actionButton.getAttribute('data-approve');
+            const rejectId = actionButton.getAttribute('data-reject');
+            if (approveId) updateQuestionStatus(approveId, 'approved', actionButton);
+            if (rejectId) updateQuestionStatus(rejectId, 'rejected', actionButton);
         });
 
         onAuthStateChanged(auth, async user => {
