@@ -1,53 +1,67 @@
-const http = require('node:http');
-const fs = require('node:fs');
-const path = require('node:path');
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+const PORT = 5000; 
 
-const rootDir = __dirname;
-const port = Number(process.env.PORT || 4175);
+// Enable cross-origin resource sharing so uiu_toolkits can post data
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-const mimeTypes = {
-    '.html': 'text/html; charset=utf-8',
-    '.js': 'text/javascript; charset=utf-8',
-    '.css': 'text/css; charset=utf-8',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon'
-};
+const DATA_FILE = path.join(__dirname, 'questions.json');
 
-function sendFile(response, filePath) {
-    const extension = path.extname(filePath).toLowerCase();
-    response.writeHead(200, {
-        'Content-Type': mimeTypes[extension] || 'application/octet-stream',
-        'Cache-Control': 'no-store'
-    });
-    fs.createReadStream(filePath).pipe(response);
+// Helper function to securely read the saved question array
+function readQuestions() {
+    if (!fs.existsSync(DATA_FILE)) {
+        return [];
+    }
+    try {
+        const data = fs.readFileSync(DATA_FILE, 'utf8');
+        return JSON.parse(data || '[]');
+    } catch (err) {
+        return [];
+    }
 }
 
-const server = http.createServer((request, response) => {
-    const url = new URL(request.url, `http://localhost:${port}`);
-    const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
-    const requestedPath = path.normalize(path.join(rootDir, decodeURIComponent(pathname)));
-    const relativePath = path.relative(rootDir, requestedPath);
+// Helper function to write updates to the file system
+function writeQuestions(questions) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(questions, null, 2));
+}
 
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-        response.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-        response.end('Forbidden');
-        return;
-    }
-
-    fs.stat(requestedPath, (error, stats) => {
-        if (error || !stats.isFile()) {
-            response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-            response.end('Not found');
-            return;
-        }
-
-        sendFile(response, requestedPath);
-    });
+// API endpoint for the admin panel to view all questions
+app.get('/api/questions', (req, res) => {
+    const questions = readQuestions();
+    res.json(questions);
 });
 
-server.listen(port, () => {
-    console.log(`UIU Toolkits Admin running at http://localhost:${port}`);
+// API endpoint for uiu_toolkits to submit new questions
+app.post('/api/questions/upload', (req, res) => {
+    const { courseName, trm, year, fileUrl, adminEmail } = req.body;
+
+    if (!courseName || !adminEmail) {
+        return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const questions = readQuestions();
+    const newQuestion = {
+        id: Date.now().toString(),
+        courseName,
+        trm,
+        year,
+        fileUrl: fileUrl || '#',
+        adminEmail,
+        status: 'Synced',
+        uploadedAt: new Date().toISOString()
+    };
+
+    questions.push(newQuestion);
+    writeQuestions(questions);
+
+    res.json({ success: true, question: newQuestion });
+});
+
+app.listen(PORT, () => {
+    console.log(`Admin server running on http://localhost:${PORT}`);
 });
