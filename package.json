@@ -1,8 +1,13 @@
 {
-  "name": "uiu-toolkits-admin",
+  "name": "uiu_toolkits_admin",
   "version": "1.0.0",
+  "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
   }
 }
