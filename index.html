@@ -1,1038 +1,234 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UIU Toolkits | Question Bank Admin</title>
-    <link rel="icon" type="image/png" href="logo.png">
-    <style>
-        :root {
-            --uiu-orange: #F37021;
-            --uiu-blue: #005696;
-            --bg-body: #fdf8f5;
-            --bg-container: #ffffff;
-            --bg-input: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --border-color: #ffdcb0;
-            --primary-color: #F37021;
-            --secondary-color: #005696;
-            --shadow: 0 8px 30px rgba(243, 112, 33, 0.12);
-            --gradient-primary: linear-gradient(135deg, #F37021 0%, #ff985c 100%);
-            --gradient-secondary: linear-gradient(135deg, #005696 0%, #0081d1 100%);
-            --success-bg: #e8f5e9;
-            --success-text: #1b5e20;
-            --danger-bg: #ffebee;
-            --danger-text: #d32f2f;
-            --warning-bg: #fff3e0;
-        }
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
 
-        * {
-            box-sizing: border-box;
-        }
+const rootDir = __dirname;
+const port = Number(process.env.PORT || 4175);
+const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME || 'drdfnqwgp';
+const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY || '';
+const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET || '';
+const firebaseWebApiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyA028mrZX2RcDewoBTy0vLHOXWAGR61mOk';
+const adminEmails = (process.env.ADMIN_EMAILS || 'ahamim2510370@bscse.uiu.ac.bd')
+    .split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--text-main);
-            background: linear-gradient(135deg, var(--bg-body) 0%, #fff0e6 100%);
-        }
+const mimeTypes = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.pdf': 'application/pdf'
+};
 
-        nav {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(12px);
-            border-bottom: 3px solid transparent;
-            border-image: var(--gradient-primary);
-            border-image-slice: 1;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
+function sendJson(response, statusCode, payload) {
+    response.writeHead(statusCode, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
+    });
+    response.end(JSON.stringify(payload));
+}
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--primary-color);
-            font-weight: 800;
-            text-decoration: none;
-        }
+function sendFile(response, filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+    response.writeHead(200, {
+        'Content-Type': mimeTypes[extension] || 'application/octet-stream',
+        'Cache-Control': 'no-store'
+    });
+    fs.createReadStream(filePath).pipe(response);
+}
 
-        .logo img {
-            width: auto;
-            height: 30px;
-            border-radius: 4px;
-        }
+function readJsonBody(request) {
+    return new Promise((resolve, reject) => {
+        let body = '';
 
-        .container {
-            width: 100%;
-            max-width: 1100px;
-            margin: 24px auto;
-            padding: 0 20px 40px;
-        }
-
-        .hero {
-            margin-bottom: 22px;
-            text-align: center;
-        }
-
-        h1 {
-            margin: 0 0 10px;
-            color: var(--primary-color);
-            font-size: 2.3rem;
-        }
-
-        .subtitle,
-        .muted {
-            color: var(--text-muted);
-            line-height: 1.55;
-        }
-
-        .card {
-            padding: 22px;
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            background: var(--bg-container);
-            box-shadow: var(--shadow);
-        }
-
-        .login-panel {
-            max-width: 620px;
-            margin: 0 auto 22px;
-        }
-
-        .review-panel {
-            display: none;
-        }
-
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 18px;
-        }
-
-        .auth-actions,
-        .item-actions,
-        .meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .profile-badge {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            min-height: 42px;
-            padding: 6px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: #ffffff;
-        }
-
-        .profile-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: var(--warning-bg);
-        }
-
-        .profile-copy {
-            display: grid;
-            gap: 2px;
-            line-height: 1.1;
-        }
-
-        .profile-name {
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-
-        .profile-email {
-            max-width: 230px;
-            overflow: hidden;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        button,
-        .link-button {
-            min-height: 42px;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            color: #ffffff;
-            font-weight: 800;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-        }
-
-        button:hover,
-        .link-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-        }
-
-        button:disabled {
-            cursor: not-allowed;
-            opacity: 0.65;
-            transform: none;
-        }
-
-        .btn-primary {
-            background: var(--gradient-primary);
-        }
-
-        .btn-secondary,
-        .link-button {
-            background: var(--gradient-secondary);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #34ce57);
-        }
-
-        .btn-danger {
-            background: #ff4d4d;
-        }
-
-        input,
-        select {
-            width: 100%;
-            min-height: 46px;
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--bg-input);
-            color: var(--text-main);
-            font-size: 1rem;
-        }
-
-        .filters {
-            display: grid;
-            grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .auth-mode-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 18px 0;
-        }
-
-        .auth-form {
-            display: grid;
-            gap: 12px;
-        }
-
-        .auth-form[hidden] {
-            display: none;
-        }
-
-        label {
-            display: grid;
-            gap: 6px;
-            color: var(--text-main);
-            font-weight: 800;
-        }
-
-        label span {
-            color: var(--text-muted);
-            font-size: 0.88rem;
-        }
-
-        .section-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 18px;
-        }
-
-        .tab-button {
-            border: 2px solid var(--border-color);
-            background: #ffffff;
-            color: var(--secondary-color);
-        }
-
-        .tab-button.active {
-            border-color: transparent;
-            background: var(--gradient-secondary);
-            color: #ffffff;
-        }
-
-        .profile-summary {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            align-items: center;
-            margin-bottom: 18px;
-            padding: 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--bg-body);
-        }
-
-        .profile-summary .profile-avatar {
-            width: 52px;
-            height: 52px;
-        }
-
-        .status {
-            margin: 14px 0;
-            padding: 12px 14px;
-            border-radius: 10px;
-            font-weight: 700;
-        }
-
-        .status.info {
-            background: var(--warning-bg);
-            color: var(--secondary-color);
-            border: 1px solid var(--primary-color);
-        }
-
-        .status.success {
-            background: var(--success-bg);
-            color: var(--success-text);
-            border: 1px solid #a5d6a7;
-        }
-
-        .status.error {
-            background: var(--danger-bg);
-            color: var(--danger-text);
-            border: 1px solid var(--danger-text);
-        }
-
-        .list {
-            display: grid;
-            gap: 14px;
-        }
-
-        .paper {
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-left: 5px solid var(--primary-color);
-            border-radius: 12px;
-            background: #ffffff;
-        }
-
-        .paper h2 {
-            margin: 0 0 8px;
-            color: var(--primary-color);
-            font-size: 1.25rem;
-        }
-
-        .pill {
-            padding: 5px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 999px;
-            background: var(--warning-bg);
-            color: var(--text-main);
-            font-size: 0.82rem;
-            font-weight: 800;
-        }
-
-        .empty {
-            padding: 28px 16px;
-            border: 1px dashed var(--border-color);
-            border-radius: 12px;
-            background: var(--bg-body);
-            color: var(--text-muted);
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            nav,
-            .toolbar {
-                align-items: stretch;
-                flex-direction: column;
+        request.on('data', chunk => {
+            body += chunk;
+            if (body.length > 1024 * 1024) {
+                request.destroy();
+                reject(new Error('Request body is too large.'));
             }
-
-            .container {
-                padding: 0 10px 28px;
-                margin-top: 12px;
-            }
-
-            .card {
-                padding: 16px;
-            }
-
-            .filters {
-                grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 1.75rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <nav>
-        <a href="index.html" class="logo">
-            <img src="logo.png" alt="UIU Toolkits Logo">
-            UIU Toolkits Admin
-        </a>
-        <div class="auth-actions">
-            <div id="profileBox" class="profile-badge">
-                <img id="profileAvatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
-                <div class="profile-copy">
-                    <span id="profileName" class="profile-name">Not signed in</span>
-                    <span id="profileEmail" class="profile-email">Waiting for login</span>
-                </div>
-            </div>
-            <button id="authPanelBtn" class="btn-primary">Account</button>
-            <button id="logoutBtn" class="btn-danger" style="display: none;">Sign Out</button>
-        </div>
-    </nav>
-
-    <main class="container">
-        <section class="hero">
-            <h1>Question Bank Approval</h1>
-            <p class="subtitle">Review submitted question PDFs before they appear in the public Question Bank.</p>
-        </section>
-
-        <section class="card login-panel" id="loginPanel">
-            <h2 style="color: var(--primary-color); margin-top: 0;">Admin Account</h2>
-            <p class="muted">Create an account or sign in with your UIU university email. Admin access is granted only to approved accounts.</p>
-
-            <div class="auth-mode-tabs">
-                <button id="showCreateBtn" class="tab-button active" type="button">Create Account</button>
-                <button id="showSignInBtn" class="tab-button" type="button">Sign In</button>
-            </div>
-
-            <form id="createAccountForm" class="auth-form">
-                <label>
-                    <span>Full name</span>
-                    <input type="text" id="createName" autocomplete="name" placeholder="Your name" required>
-                </label>
-                <label>
-                    <span>UIU email</span>
-                    <input type="email" id="createEmail" autocomplete="email" placeholder="name@bscse.uiu.ac.bd" required>
-                </label>
-                <label>
-                    <span>Password</span>
-                    <input type="password" id="createPassword" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" required>
-                </label>
-                <button id="createAccountBtn" class="btn-primary" type="submit">Create Account</button>
-            </form>
-
-            <form id="signInForm" class="auth-form" hidden>
-                <label>
-                    <span>UIU email</span>
-                    <input type="email" id="signInEmail" autocomplete="email" placeholder="name@bscse.uiu.ac.bd" required>
-                </label>
-                <label>
-                    <span>Password</span>
-                    <input type="password" id="signInPassword" autocomplete="current-password" placeholder="Your password" required>
-                </label>
-                <button id="signInBtn" class="btn-primary" type="submit">Sign In</button>
-            </form>
-
-            <div id="loginStatusBox" class="status info" style="margin-bottom: 0;">Waiting for admin login.</div>
-        </section>
-
-        <section class="card review-panel" id="reviewPanel">
-            <div class="toolbar">
-                <div>
-                    <strong id="adminIdentity">Not signed in</strong>
-                    <p class="muted" style="margin: 5px 0 0;">Only approved admin accounts can approve or reject papers.</p>
-                </div>
-                <span class="pill" id="pendingCount">0 pending</span>
-            </div>
-
-            <div class="profile-summary">
-                <img id="dashboardAvatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
-                <div>
-                    <strong id="dashboardName">Not signed in</strong>
-                    <p id="dashboardEmail" class="muted" style="margin: 4px 0 0;">Waiting for login</p>
-                    <p id="dashboardUid" class="muted" style="margin: 4px 0 0;">UID will appear after login</p>
-                </div>
-            </div>
-
-            <div id="statusBox" class="status info">Sign in to load pending submissions.</div>
-
-            <div class="section-tabs" aria-label="Question status sections">
-                <button id="pendingTabBtn" class="tab-button active" type="button">Pending Uploads</button>
-                <button id="approvedTabBtn" class="tab-button" type="button">Approved Questions</button>
-            </div>
-
-            <div class="filters">
-                <input type="text" id="searchInput" placeholder="Search course name, code, trimester, or submitter email...">
-                <select id="typeFilter">
-                    <option value="">All Types</option>
-                    <option value="Midterm">Midterm</option>
-                    <option value="Final">Final</option>
-                    <option value="Quiz">Quiz</option>
-                    <option value="Assignment">Assignment</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <div id="paperList" class="list">
-                <div class="empty">Pending submissions will appear here after admin sign-in.</div>
-            </div>
-        </section>
-    </main>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-        import { getAnalytics, isSupported } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js';
-        import {
-            collection,
-            doc,
-            getDoc,
-            getFirestore,
-            onSnapshot,
-            query,
-            serverTimestamp,
-            updateDoc,
-            where
-        } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-        import {
-            createUserWithEmailAndPassword,
-            getAuth,
-            onAuthStateChanged,
-            signInWithEmailAndPassword,
-            signOut,
-            updateProfile
-        } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-
-        const firebaseConfig = {
-            apiKey: 'AIzaSyA028mrZX2RcDewoBTy0vLHOXWAGR61mOk',
-            authDomain: 'uiu-toolkits-admin.firebaseapp.com',
-            projectId: 'uiu-toolkits-admin',
-            storageBucket: 'uiu-toolkits-admin.firebasestorage.app',
-            messagingSenderId: '643628466748',
-            appId: '1:643628466748:web:2a4ed7f197cee5204db939',
-            measurementId: 'G-REX8XMHSRC'
-        };
-
-        const QUESTION_COLLECTION = 'questionPapers';
-        const ADMIN_EMAILS = ['ahamim2510370@bscse.uiu.ac.bd'];
-
-        const app = initializeApp(firebaseConfig);
-        isSupported().then(supported => {
-            if (supported) getAnalytics(app);
         });
-        const db = getFirestore(app);
-        const auth = getAuth(app);
 
-        let currentUser = null;
-        let isAdmin = false;
-        let currentPapers = [];
-        let activeQuestionStatus = 'pending';
-        let unsubscribeQuestions = null;
-
-        const authPanelBtn = document.getElementById('authPanelBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const showCreateBtn = document.getElementById('showCreateBtn');
-        const showSignInBtn = document.getElementById('showSignInBtn');
-        const createAccountForm = document.getElementById('createAccountForm');
-        const signInForm = document.getElementById('signInForm');
-        const createAccountBtn = document.getElementById('createAccountBtn');
-        const signInBtn = document.getElementById('signInBtn');
-        const createName = document.getElementById('createName');
-        const createEmail = document.getElementById('createEmail');
-        const createPassword = document.getElementById('createPassword');
-        const signInEmail = document.getElementById('signInEmail');
-        const signInPassword = document.getElementById('signInPassword');
-        const profileBox = document.getElementById('profileBox');
-        const profileAvatar = document.getElementById('profileAvatar');
-        const profileName = document.getElementById('profileName');
-        const profileEmail = document.getElementById('profileEmail');
-        const dashboardAvatar = document.getElementById('dashboardAvatar');
-        const dashboardName = document.getElementById('dashboardName');
-        const dashboardEmail = document.getElementById('dashboardEmail');
-        const dashboardUid = document.getElementById('dashboardUid');
-        const loginPanel = document.getElementById('loginPanel');
-        const reviewPanel = document.getElementById('reviewPanel');
-        const loginStatusBox = document.getElementById('loginStatusBox');
-        const statusBox = document.getElementById('statusBox');
-        const paperList = document.getElementById('paperList');
-        const adminIdentity = document.getElementById('adminIdentity');
-        const pendingCount = document.getElementById('pendingCount');
-        const searchInput = document.getElementById('searchInput');
-        const typeFilter = document.getElementById('typeFilter');
-        const pendingTabBtn = document.getElementById('pendingTabBtn');
-        const approvedTabBtn = document.getElementById('approvedTabBtn');
-
-        function setStatus(message, type = 'info') {
-            statusBox.textContent = message;
-            statusBox.className = `status ${type}`;
-            loginStatusBox.textContent = message;
-            loginStatusBox.className = `status ${type}`;
-        }
-
-        function setSignedOutUi(message = 'Sign in to load pending submissions.') {
-            adminIdentity.textContent = 'Not signed in';
-            profileBox.style.display = 'none';
-            profileAvatar.removeAttribute('src');
-            dashboardAvatar.removeAttribute('src');
-            profileName.textContent = 'Not signed in';
-            profileEmail.textContent = 'Waiting for login';
-            dashboardName.textContent = 'Not signed in';
-            dashboardEmail.textContent = 'Waiting for login';
-            dashboardUid.textContent = 'UID will appear after login';
-            authPanelBtn.style.display = 'inline-block';
-            createAccountBtn.disabled = false;
-            signInBtn.disabled = false;
-            logoutBtn.style.display = 'none';
-            loginPanel.style.display = 'block';
-            reviewPanel.style.display = 'none';
-            setStatus(message, 'info');
-            listenForQuestionPapers();
-        }
-
-        function setSignedInUi(user) {
-            const displayName = user.displayName || getEmailHandle(user.email);
-            adminIdentity.textContent = `Signed in as ${user.email}`;
-            profileBox.style.display = 'flex';
-            profileName.textContent = displayName;
-            profileEmail.textContent = user.email || 'No email available';
-            profileAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
-            dashboardName.textContent = displayName;
-            dashboardEmail.textContent = user.email || 'No email available';
-            dashboardUid.textContent = `UID: ${user.uid}`;
-            dashboardAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
-            authPanelBtn.style.display = 'none';
-            createAccountBtn.disabled = false;
-            signInBtn.disabled = false;
-            logoutBtn.style.display = 'inline-block';
-        }
-
-        function normalizeText(value) {
-            return String(value || '').trim();
-        }
-
-        function isUniversityEmail(value) {
-            return /^[a-z0-9._%+-]+@[a-z0-9-]+\.uiu\.ac\.bd$/i.test(normalizeText(value));
-        }
-
-        function getEmailHandle(email) {
-            return normalizeText(email).split('@')[0] || 'A student';
-        }
-
-        function getTrimesterLabel(value) {
-            const code = normalizeText(value);
-            const termLabels = {
-                '1': 'Spring',
-                '2': 'Summer',
-                '3': 'Fall'
-            };
-            const yearPrefix = code.slice(0, 2);
-            const termCode = code.slice(2);
-            const termLabel = termLabels[termCode];
-
-            if (!/^\d{2}[123]$/.test(code) || !termLabel) return value;
-            return `${code} - ${termLabel} 20${yearPrefix}`;
-        }
-
-        function getSubmitterEmail(paper) {
-            return normalizeText(
-                paper.submitterEmail ||
-                paper.contactEmail ||
-                paper.providedEmail ||
-                paper.userEmail ||
-                paper.gmail ||
-                paper.email
-            );
-        }
-
-        function getSubmitterHandle(paper) {
-            return normalizeText(paper.submitterHandle) || getEmailHandle(getSubmitterEmail(paper));
-        }
-
-        function escapeHtml(value) {
-            return String(value || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function formatFirestoreDate(value) {
-            if (!value) return 'Just now';
-            const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function paperFromDoc(snapshot) {
-            return {
-                id: snapshot.id,
-                ...snapshot.data()
-            };
-        }
-
-        function sortNewestFirst(a, b) {
-            const aMs = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
-            const bMs = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
-            return bMs - aMs;
-        }
-
-        function getStatusLabel(status = activeQuestionStatus) {
-            return status === 'approved' ? 'approved' : 'pending';
-        }
-
-        function setActiveQuestionStatus(status) {
-            activeQuestionStatus = status === 'approved' ? 'approved' : 'pending';
-            pendingTabBtn.classList.toggle('active', activeQuestionStatus === 'pending');
-            approvedTabBtn.classList.toggle('active', activeQuestionStatus === 'approved');
-            listenForQuestionPapers();
-        }
-
-        function renderPapers() {
-            const search = normalizeText(searchInput.value).toLowerCase();
-            const type = normalizeText(typeFilter.value);
-
-            const filtered = currentPapers.filter(paper => {
-                const haystack = [
-                    paper.title,
-                    paper.courseName,
-                    paper.courseCode,
-                    paper.courseSearch,
-                    paper.trimester,
-                    paper.examType,
-                    getSubmitterEmail(paper),
-                    getSubmitterHandle(paper),
-                    paper.originalFilename
-                ].join(' ').toLowerCase();
-
-                return (!search || haystack.includes(search)) && (!type || paper.examType === type);
-            });
-
-            const statusLabel = getStatusLabel();
-            pendingCount.textContent = `${currentPapers.length} ${statusLabel}`;
-
-            if (!isAdmin) {
-                paperList.innerHTML = '<div class="empty">Your profile loaded, but this account does not have admin access yet. Add this email to the admin allowlist or create <code>admins/{uid}</code> in Firestore.</div>';
-                return;
-            }
-
-            if (filtered.length === 0) {
-                paperList.innerHTML = `<div class="empty">No ${statusLabel} question PDFs match the current filter.</div>`;
-                return;
-            }
-
-            paperList.innerHTML = filtered.map(paper => {
-                const courseTitle = paper.courseName
-                    ? `${paper.courseCode} - ${paper.courseName}`
-                    : (paper.title || paper.courseCode || 'Question Submission');
-                const solutionLink = paper.solutionPdfUrl
-                    ? `<a class="link-button" href="${escapeHtml(paper.solutionPdfUrl)}" target="_blank" rel="noopener">Open Solution</a>`
-                    : '';
-                const submitterEmail = getSubmitterEmail(paper);
-                const submitterHandle = getSubmitterHandle(paper);
-                const reviewActions = activeQuestionStatus === 'pending'
-                    ? `<button class="btn-success" data-approve="${paper.id}">Approve</button>
-                        <button class="btn-danger" data-reject="${paper.id}">Reject</button>`
-                    : '';
-
-                return `
-                    <article class="paper">
-                    <h2>${escapeHtml(courseTitle)}</h2>
-                    <div class="meta">
-                        <span class="pill">${escapeHtml(paper.courseCode)}</span>
-                        <span class="pill">${escapeHtml(paper.examType)}</span>
-                        <span class="pill">${escapeHtml(getTrimesterLabel(paper.trimester))}</span>
-                        <span class="pill">${formatFirestoreDate(paper.submittedAt)}</span>
-                    </div>
-                    <p class="muted"><strong>Provided email:</strong> ${escapeHtml(submitterEmail || 'No email saved')}</p>
-                    <p class="muted"><strong>Admin notice:</strong> ${escapeHtml(paper.adminNotificationMessage || `${submitterHandle} submitted a question for this course for this exam for this trimester for approval.`)}</p>
-                    <p class="muted"><strong>File:</strong> ${escapeHtml(paper.originalFilename || 'Question PDF')}</p>
-                    <div class="item-actions">
-                        <a class="link-button" href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">Open PDF</a>
-                        ${solutionLink}
-                        ${reviewActions}
-                    </div>
-                </article>
-                `;
-            }).join('');
-        }
-
-        function listenForQuestionPapers() {
-            if (unsubscribeQuestions) {
-                unsubscribeQuestions();
-                unsubscribeQuestions = null;
-            }
-
-            if (!isAdmin) {
-                currentPapers = [];
-                renderPapers();
-                return;
-            }
-
-            const statusLabel = getStatusLabel();
-            const questionQuery = query(
-                collection(db, QUESTION_COLLECTION),
-                where('status', '==', activeQuestionStatus)
-            );
-
-            unsubscribeQuestions = onSnapshot(questionQuery, snapshot => {
-                currentPapers = snapshot.docs.map(paperFromDoc).sort(sortNewestFirst);
-                renderPapers();
-                setStatus(`${statusLabel.charAt(0).toUpperCase()}${statusLabel.slice(1)} questions loaded.`, 'success');
-            }, error => {
-                console.error(`Could not load ${statusLabel} submissions:`, error);
-                setStatus(`Could not load ${statusLabel} submissions. Check Firestore rules.`, 'error');
-            });
-        }
-
-        async function checkAdminAccess(user) {
-            if (!user) return false;
-            if (ADMIN_EMAILS.includes(normalizeText(user.email).toLowerCase())) return true;
-            const adminSnapshot = await getDoc(doc(db, 'admins', user.uid));
-            return adminSnapshot.exists();
-        }
-
-        function setAuthMode(mode) {
-            const createMode = mode !== 'signin';
-            createAccountForm.hidden = !createMode;
-            signInForm.hidden = createMode;
-            showCreateBtn.classList.toggle('active', createMode);
-            showSignInBtn.classList.toggle('active', !createMode);
-        }
-
-        function getAuthErrorMessage(error) {
-            const fallback = error?.message || 'Authentication failed. Please try again.';
-            const messages = {
-                'auth/email-already-in-use': 'This email already has an account. Please sign in instead.',
-                'auth/invalid-email': 'Please enter a valid UIU email address.',
-                'auth/invalid-credential': 'Email or password is incorrect.',
-                'auth/weak-password': 'Use a password with at least 6 characters.',
-                'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
-                'auth/user-not-found': 'No account was found for this email.'
-            };
-            return messages[error?.code] || fallback;
-        }
-
-        async function handleCreateAccount(event) {
-            event.preventDefault();
-            const name = normalizeText(createName.value);
-            const email = normalizeText(createEmail.value).toLowerCase();
-            const password = createPassword.value;
-
-            if (!name) {
-                setStatus('Enter your full name before creating the account.', 'error');
-                return;
-            }
-
-            if (!isUniversityEmail(email)) {
-                setStatus('Please use a UIU university email ending like @bscse.uiu.ac.bd.', 'error');
-                return;
-            }
-
+        request.on('end', () => {
             try {
-                createAccountBtn.disabled = true;
-                setStatus('Creating account...', 'info');
-                const credential = await createUserWithEmailAndPassword(auth, email, password);
-                await updateProfile(credential.user, { displayName: name });
-                createAccountForm.reset();
-                setStatus('Account created. Checking admin access...', 'success');
-            } catch (error) {
-                console.error('Account creation failed:', error);
-                setStatus(getAuthErrorMessage(error), 'error');
-            } finally {
-                createAccountBtn.disabled = false;
-            }
-        }
-
-        async function handleSignIn(event) {
-            event.preventDefault();
-            const email = normalizeText(signInEmail.value).toLowerCase();
-            const password = signInPassword.value;
-
-            if (!isUniversityEmail(email)) {
-                setStatus('Please use a UIU university email ending like @bscse.uiu.ac.bd.', 'error');
-                return;
-            }
-
-            try {
-                signInBtn.disabled = true;
-                setStatus('Signing in...', 'info');
-                await signInWithEmailAndPassword(auth, email, password);
-                signInForm.reset();
-            } catch (error) {
-                console.error('Sign in failed:', error);
-                setStatus(getAuthErrorMessage(error), 'error');
-            } finally {
-                signInBtn.disabled = false;
-            }
-        }
-
-        function getCloudinaryAssets(paper) {
-            return [
-                {
-                    publicId: paper.cloudinaryPublicId,
-                    resourceType: paper.cloudinaryResourceType || 'raw',
-                    label: 'question PDF'
-                },
-                {
-                    publicId: paper.solutionCloudinaryPublicId,
-                    resourceType: paper.solutionCloudinaryResourceType || 'raw',
-                    label: 'solution PDF'
-                }
-            ].filter(asset => asset.publicId);
-        }
-
-        async function deleteRejectedCloudinaryAssets(paper) {
-            const assets = getCloudinaryAssets(paper);
-            if (assets.length === 0) return [];
-
-            const idToken = await currentUser.getIdToken();
-            const response = await fetch('/api/cloudinary/delete', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ assets })
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Cloudinary delete failed.');
-            }
-
-            return data.deleted || [];
-        }
-
-        async function updateQuestionStatus(paperId, status, actionButton = null) {
-            if (!isAdmin || !currentUser) {
-                setStatus('Only a signed-in admin can update question papers.', 'error');
-                return;
-            }
-
-            const isApproval = status === 'approved';
-            const paper = currentPapers.find(item => item.id === paperId);
-
-            if (!paper) {
-                setStatus('Could not find this question paper in the current list. Refresh and try again.', 'error');
-                return;
-            }
-
-            if (!isApproval && !window.confirm('Reject this submission and permanently delete its Cloudinary PDF files?')) {
-                return;
-            }
-
-            const payload = isApproval
-                ? {
-                    status: 'approved',
-                    approvedAt: serverTimestamp(),
-                    approvedByUid: currentUser.uid,
-                    approvedByEmail: currentUser.email || ''
-                }
-                : {
-                    status: 'rejected',
-                    rejectedAt: serverTimestamp(),
-                    rejectedByUid: currentUser.uid,
-                    rejectedByEmail: currentUser.email || ''
-            };
-
-            try {
-                if (actionButton) actionButton.disabled = true;
-                setStatus(isApproval ? 'Approving question paper...' : 'Deleting Cloudinary PDF files...', 'info');
-
-                if (!isApproval) {
-                    const deletedAssets = await deleteRejectedCloudinaryAssets(paper);
-                    payload.cloudinaryDeletedAt = serverTimestamp();
-                    payload.cloudinaryDeleteResults = deletedAssets;
-                }
-
-                await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
-                setStatus(isApproval ? 'Question paper approved. It is now visible in the public Question Bank.' : 'Question paper rejected and deleted from Cloudinary.', 'success');
-            } catch (error) {
-                console.error('Could not update question status:', error);
-                setStatus(error.message || 'Could not update question paper.', 'error');
-            } finally {
-                if (actionButton) actionButton.disabled = false;
-            }
-        }
-
-        showCreateBtn.addEventListener('click', () => setAuthMode('create'));
-        showSignInBtn.addEventListener('click', () => setAuthMode('signin'));
-        createAccountForm.addEventListener('submit', handleCreateAccount);
-        signInForm.addEventListener('submit', handleSignIn);
-        authPanelBtn.addEventListener('click', () => {
-            loginPanel.style.display = 'block';
-            loginPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth);
-        });
-        searchInput.addEventListener('input', renderPapers);
-        typeFilter.addEventListener('change', renderPapers);
-        pendingTabBtn.addEventListener('click', () => setActiveQuestionStatus('pending'));
-        approvedTabBtn.addEventListener('click', () => setActiveQuestionStatus('approved'));
-
-        paperList.addEventListener('click', event => {
-            const actionButton = event.target.closest('button[data-approve], button[data-reject]');
-            if (!actionButton) return;
-
-            const approveId = actionButton.getAttribute('data-approve');
-            const rejectId = actionButton.getAttribute('data-reject');
-            if (approveId) updateQuestionStatus(approveId, 'approved', actionButton);
-            if (rejectId) updateQuestionStatus(rejectId, 'rejected', actionButton);
-        });
-
-        onAuthStateChanged(auth, async user => {
-            currentUser = user;
-            isAdmin = false;
-
-            if (!user) {
-                setSignedOutUi();
-                return;
-            }
-
-            if (!isUniversityEmail(user.email)) {
-                setStatus(`${user.email} is not a UIU university email.`, 'error');
-                await signOut(auth);
-                return;
-            }
-
-            setSignedInUi(user);
-
-            try {
-                isAdmin = await checkAdminAccess(user);
-                if (!isAdmin) {
-                    loginPanel.style.display = 'none';
-                    reviewPanel.style.display = 'block';
-                    setStatus(`${user.email} is signed in, but this account is not listed as an admin yet.`, 'error');
-                    listenForQuestionPapers();
-                    return;
-                }
-
-                loginPanel.style.display = 'none';
-                reviewPanel.style.display = 'block';
-                setStatus('Admin verified. Loading questions...', 'success');
-                listenForQuestionPapers();
-            } catch (error) {
-                console.error('Admin verification failed:', error);
-                setStatus('Could not verify admin access. Check Firestore admin document rules.', 'error');
+                resolve(body ? JSON.parse(body) : {});
+            } catch {
+                reject(new Error('Invalid JSON request body.'));
             }
         });
-    </script>
-</body>
-</html>
+
+        request.on('error', reject);
+    });
+}
+
+function getBearerToken(request) {
+    const header = request.headers.authorization || '';
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    return match ? match[1] : '';
+}
+
+async function verifyAdminToken(idToken) {
+    if (!idToken) {
+        const error = new Error('Missing Firebase ID token.');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const lookupResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseWebApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+    });
+    const lookupData = await lookupResponse.json();
+    const firebaseUser = lookupData.users?.[0];
+    const email = String(firebaseUser?.email || '').toLowerCase();
+
+    if (!lookupResponse.ok || !firebaseUser) {
+        const error = new Error(lookupData.error?.message || 'Could not verify Firebase user.');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    if (!adminEmails.includes(email)) {
+        const error = new Error('This Firebase user is not allowed to delete Cloudinary assets.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    return firebaseUser;
+}
+
+function signCloudinaryParams(params) {
+    const payload = Object.keys(params)
+        .filter(key => params[key] !== undefined && params[key] !== null && params[key] !== '')
+        .sort()
+        .map(key => `${key}=${params[key]}`)
+        .join('&');
+
+    return crypto
+        .createHash('sha1')
+        .update(`${payload}${cloudinaryApiSecret}`)
+        .digest('hex');
+}
+
+function normalizeCloudinaryAssets(assets) {
+    if (!Array.isArray(assets)) return [];
+
+    return assets
+        .map(asset => ({
+            publicId: String(asset.publicId || '').trim(),
+            resourceType: ['image', 'video', 'raw'].includes(asset.resourceType) ? asset.resourceType : 'raw'
+        }))
+        .filter(asset => asset.publicId);
+}
+
+async function destroyCloudinaryAsset(asset) {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const params = {
+        public_id: asset.publicId,
+        invalidate: 'true',
+        timestamp
+    };
+    const signature = signCloudinaryParams(params);
+    const formData = new URLSearchParams({
+        ...params,
+        api_key: cloudinaryApiKey,
+        signature
+    });
+    const destroyResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/${asset.resourceType}/destroy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+    });
+    const data = await destroyResponse.json();
+
+    if (!destroyResponse.ok) {
+        throw new Error(data.error?.message || `Cloudinary could not delete ${asset.publicId}.`);
+    }
+
+    return {
+        publicId: asset.publicId,
+        resourceType: asset.resourceType,
+        result: data.result || 'unknown'
+    };
+}
+
+async function handleCloudinaryDelete(request, response) {
+    if (request.method !== 'POST') {
+        sendJson(response, 405, { error: 'Method not allowed.' });
+        return;
+    }
+
+    if (!cloudinaryApiKey || !cloudinaryApiSecret) {
+        sendJson(response, 500, {
+            error: 'Cloudinary delete is not configured. Set CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET on the admin server.'
+        });
+        return;
+    }
+
+    try {
+        await verifyAdminToken(getBearerToken(request));
+        const body = await readJsonBody(request);
+        const assets = normalizeCloudinaryAssets(body.assets);
+
+        if (assets.length === 0) {
+            sendJson(response, 400, { error: 'No Cloudinary public IDs were provided.' });
+            return;
+        }
+
+        const deleted = [];
+        for (const asset of assets) {
+            deleted.push(await destroyCloudinaryAsset(asset));
+        }
+
+        sendJson(response, 200, { deleted });
+    } catch (error) {
+        console.error('Cloudinary delete failed:', error);
+        sendJson(response, error.statusCode || 500, {
+            error: error.message || 'Cloudinary delete failed.'
+        });
+    }
+}
+
+const server = http.createServer((request, response) => {
+    const url = new URL(request.url, `http://localhost:${port}`);
+    if (url.pathname === '/api/cloudinary/delete') {
+        handleCloudinaryDelete(request, response);
+        return;
+    }
+
+    if (url.pathname.startsWith('/api/')) {
+        sendJson(response, 404, { error: 'API route not found.' });
+        return;
+    }
+
+    const pathname = url.pathname === '/' ? '/admin.html' : url.pathname;
+    const requestedPath = path.normalize(path.join(rootDir, decodeURIComponent(pathname)));
+    const relativePath = path.relative(rootDir, requestedPath);
+
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+        response.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        response.end('Forbidden');
+        return;
+    }
+
+    fs.stat(requestedPath, (error, stats) => {
+        if (error || !stats.isFile()) {
+            response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            response.end('Not found');
+            return;
+        }
+
+        sendFile(response, requestedPath);
+    });
+});
+
+server.listen(port, () => {
+    console.log(`UIU Toolkits Admin running at http://localhost:${port}`);
+});
