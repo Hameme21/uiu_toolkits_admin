@@ -470,7 +470,7 @@
             <div id="statusBox" class="status info">Sign in to load pending submissions.</div>
 
             <div class="section-tabs" aria-label="Question status sections">
-                <button id="pendingTabBtn" class="tab-button active" type="button">Pending Questions</button>
+                <button id="pendingTabBtn" class="tab-button active" type="button">Pending Uploads</button>
                 <button id="approvedTabBtn" class="tab-button" type="button">Approved Questions</button>
             </div>
 
@@ -631,12 +631,33 @@
         }
 
         function getTrimesterLabel(value) {
-            const labels = {
-                '261': '261 - Spring 2026',
-                '262': '262 - Summer 2026',
-                '263': '263 - Fall 2026'
+            const code = normalizeText(value);
+            const termLabels = {
+                '1': 'Spring',
+                '2': 'Summer',
+                '3': 'Fall'
             };
-            return labels[value] || value;
+            const yearPrefix = code.slice(0, 2);
+            const termCode = code.slice(2);
+            const termLabel = termLabels[termCode];
+
+            if (!/^\d{2}[123]$/.test(code) || !termLabel) return value;
+            return `${code} - ${termLabel} 20${yearPrefix}`;
+        }
+
+        function getSubmitterEmail(paper) {
+            return normalizeText(
+                paper.submitterEmail ||
+                paper.contactEmail ||
+                paper.providedEmail ||
+                paper.userEmail ||
+                paper.gmail ||
+                paper.email
+            );
+        }
+
+        function getSubmitterHandle(paper) {
+            return normalizeText(paper.submitterHandle) || getEmailHandle(getSubmitterEmail(paper));
         }
 
         function escapeHtml(value) {
@@ -694,8 +715,8 @@
                     paper.courseSearch,
                     paper.trimester,
                     paper.examType,
-                    paper.submitterEmail,
-                    paper.submitterHandle,
+                    getSubmitterEmail(paper),
+                    getSubmitterHandle(paper),
                     paper.originalFilename
                 ].join(' ').toLowerCase();
 
@@ -722,6 +743,8 @@
                 const solutionLink = paper.solutionPdfUrl
                     ? `<a class="link-button" href="${escapeHtml(paper.solutionPdfUrl)}" target="_blank" rel="noopener">Open Solution</a>`
                     : '';
+                const submitterEmail = getSubmitterEmail(paper);
+                const submitterHandle = getSubmitterHandle(paper);
                 const reviewActions = activeQuestionStatus === 'pending'
                     ? `<button class="btn-success" data-approve="${paper.id}">Approve</button>
                         <button class="btn-danger" data-reject="${paper.id}">Reject</button>`
@@ -736,8 +759,8 @@
                         <span class="pill">${escapeHtml(getTrimesterLabel(paper.trimester))}</span>
                         <span class="pill">${formatFirestoreDate(paper.submittedAt)}</span>
                     </div>
-                    <p class="muted"><strong>Submitted by:</strong> ${escapeHtml(paper.submitterEmail || 'No email saved')}</p>
-                    <p class="muted"><strong>Admin notice:</strong> ${escapeHtml(paper.adminNotificationMessage || `${getEmailHandle(paper.submitterEmail)} submitted a question for this course for this exam for this trimester for approval.`)}</p>
+                    <p class="muted"><strong>Provided email:</strong> ${escapeHtml(submitterEmail || 'No email saved')}</p>
+                    <p class="muted"><strong>Admin notice:</strong> ${escapeHtml(paper.adminNotificationMessage || `${submitterHandle} submitted a question for this course for this exam for this trimester for approval.`)}</p>
                     <p class="muted"><strong>File:</strong> ${escapeHtml(paper.originalFilename || 'Question PDF')}</p>
                     <div class="item-actions">
                         <a class="link-button" href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">Open PDF</a>
