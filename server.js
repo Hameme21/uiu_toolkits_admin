@@ -2,6 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const nodemailer = require('nodemailer'); // Added dependency
 
 const rootDir = __dirname;
 const port = Number(process.env.PORT || 4175);
@@ -10,6 +11,14 @@ const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY || '';
 const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET || '';
 const cloudinaryUploadFolder = process.env.CLOUDINARY_UPLOAD_FOLDER || 'uiu-toolkits/question-bank';
 const firebaseWebApiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyA028mrZX2RcDewoBTy0vLHOXWAGR61mOk';
+
+// SMTP Configuration for Email Notifications
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpUser = process.env.SMTP_USER || ''; // Set your email address here
+const smtpPass = process.env.SMTP_PASS || ''; // Set your app password here
+const emailFrom = process.env.EMAIL_FROM || 'UIU Toolkits <noreply@uiu-toolkits.com>';
+
 const adminEmails = (process.env.ADMIN_EMAILS || 'ahamim2510370@bscse.uiu.ac.bd')
     .split(',')
     .map(email => email.trim().toLowerCase())
@@ -469,6 +478,72 @@ async function handleQuestionsSubmit(request, response) {
     }
 }
 
+// Added endpoint to process review results and send email notifications
+async function handleQuestionsNotify(request, response) {
+    if (request.method !== 'POST') {
+        sendJson(response, 405, { error: 'Method not allowed.' }, getRequestOrigin(request));
+        return;
+    }
+
+    const requestOrigin = getRequestOrigin(request);
+
+    try {
+        await verifyAdminToken(getBearerToken(request));
+        const body = await readJsonBody(request);
+        
+        const recipientEmail = normalizeText(body.email).toLowerCase();
+        const status = normalizeText(body.status).toLowerCase(); 
+        const courseCode = normalizeText(body.courseCode);
+        const courseName = normalizeText(body.courseName);
+        const examType = normalizeText(body.examType);
+        const trimester = normalizeText(body.trimester);
+
+        if (!recipientEmail || !status || !courseCode) {
+            sendJson(response, 400, { error: 'email, status, and courseCode are required.' }, requestOrigin);
+            return;
+        }
+
+        if (!smtpUser || !smtpPass) {
+            console.warn('SMTP configuration values are missing. Email notifications skipped.');
+            sendJson(response, 200, { success: true, message: 'Notification skipped due to missing SMTP details.' }, requestOrigin);
+            return;
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: {
+                user: smtpUser,
+                pass: smtpPass
+            }
+        });
+
+        const isApproved = status === 'approved';
+        const subject = isApproved 
+            ? `Approved: Your question paper submission for ${courseCode}`
+            : `Rejected: Your question paper submission for ${courseCode}`;
+
+        const textMessage = isApproved
+            ? `Hello,\n\nYour question paper submission for ${courseCode} (${courseName}) : ${examType} (${trimester}) has been approved by the administrator. It is now visible in the public UIU Question Bank.\n\nThank you for your contribution.\n\nBest regards,\nUIU Toolkits Team`
+            : `Hello,\n\nWe regret to inform you that your question paper submission for ${courseCode} (${courseName}) : ${examType} (${trimester}) has been rejected and deleted from our storage repository. This usually occurs if the file layout is unreadable or if duplicate content already exists.\n\nBest regards,\nUIU Toolkits Team`;
+
+        await transporter.sendMail({
+            from: emailFrom,
+            to: recipientEmail,
+            subject: subject,
+            text: textMessage
+        });
+
+        sendJson(response, 200, { success: true, message: 'Notification email dispatched successfully.' }, requestOrigin);
+    } catch (error) {
+        console.error('Failed to dispatch notification email:', error);
+        sendJson(response, error.statusCode || 500, {
+            error: error.message || 'Could not send email notification.'
+        }, requestOrigin);
+    }
+}
+
 const apiRoutes = {
     '/api/health': handleHealth,
     '/api/cloudinary/config': handleCloudinaryConfig,
@@ -476,7 +551,8 @@ const apiRoutes = {
     '/api/cloudinary/delete': handleCloudinaryDelete,
     '/api/cloudinary/approve-assets': handleCloudinaryApproveAssets,
     '/api/questions/submit': handleQuestionsSubmit,
-    '/api/questions/upload': handleQuestionsSubmit
+    '/api/questions/upload': handleQuestionsSubmit,
+    '/api/questions/notify': handleQuestionsNotify // Registered route
 };
 
 const server = http.createServer((request, response) => {
