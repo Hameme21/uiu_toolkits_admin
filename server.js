@@ -227,7 +227,9 @@ async function handleCloudinarySignUpload(request, response) {
         const assetType = normalizeText(body.assetType).toLowerCase();
         const courseCode = normalizeText(body.courseCode).replace(/\s+/g, ' ').toUpperCase();
         const assetLabel = normalizeText(body.assetLabel);
-        const resourceType = 'raw';
+        
+        // Changed from 'raw' to 'image' to fix the browser preview loading error
+        const resourceType = 'image';
 
         if (!isValidAssetType(assetType)) {
             sendJson(response, 400, { error: 'assetType must be "question" or "solution".' }, requestOrigin);
@@ -371,14 +373,37 @@ async function handleCloudinaryDelete(request, response) {
             deleted.push(await destroyCloudinaryAsset(asset));
         }
 
-        sendJson(response, 200, { deleted }, requestOrigin);
-    } catch (error) {
-        console.error('Cloudinary delete failed:', error);
-        sendJson(response, error.statusCode || 500, {
-            error: error.message || 'Cloudinary delete failed.'
+sendJson(response, 200, {
+            success: true,
+            message: 'Question metadata validated. Save this submission to Firestore from the client.',
+            submission: {
+                title: `${courseCode} - ${courseName} ${examType} ${trimester}`,
+                courseCode,
+                courseName,
+                trimester,
+                examType,
+                submitterEmail,
+                status: 'pending',
+                pdfUrl: questionAsset.secure_url || questionAsset.secureUrl || '',
+                cloudinaryPublicId: questionAsset.public_id || questionAsset.publicId || '',
+                
+                // CHANGE THIS LINE FROM 'raw' TO 'image'
+                cloudinaryResourceType: 'image',
+                
+                cloudinaryAssetId: questionAsset.asset_id || questionAsset.assetId || '',
+                bytes: questionAsset.bytes || 0,
+                originalFilename: questionAsset.original_filename || questionAsset.originalFilename || '',
+                solutionPdfUrl: solutionAsset?.secure_url || solutionAsset?.secureUrl || '',
+                solutionCloudinaryPublicId: solutionAsset?.public_id || solutionAsset?.publicId || '',
+                
+                // CHANGE THIS LINE FROM 'raw' TO 'image'
+                solutionCloudinaryResourceType: solutionAsset ? 'image' : '',
+                
+                solutionCloudinaryAssetId: solutionAsset?.asset_id || solutionAsset?.assetId || '',
+                solutionBytes: solutionAsset?.bytes || 0,
+                solutionOriginalFilename: solutionAsset?.original_filename || solutionAsset?.originalFilename || ''
+            }
         }, requestOrigin);
-    }
-}
 
 async function handleCloudinaryApproveAssets(request, response) {
     if (request.method !== 'POST') {
