@@ -386,7 +386,7 @@
 </head>
 <body>
     <nav>
-        <a href="index.html" class="logo">
+        <a href="https://uiu-toolkits.vercel.app/" class="logo">
             <img src="logo.png" alt="UIU Toolkits Logo">
             UIU Toolkits Admin
         </a>
@@ -897,6 +897,28 @@
             ].filter(asset => asset.publicId);
         }
 
+        async function approveCloudinaryAssets(paper) {
+            const assets = getCloudinaryAssets(paper);
+            if (assets.length === 0) return [];
+
+            const idToken = await currentUser.getIdToken();
+            const response = await fetch('/api/cloudinary/approve-assets', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ assets })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Cloudinary approve failed.');
+            }
+
+            return data.updated || [];
+        }
+
         async function deleteRejectedCloudinaryAssets(paper) {
             const assets = getCloudinaryAssets(paper);
             if (assets.length === 0) return [];
@@ -955,7 +977,11 @@
                 if (actionButton) actionButton.disabled = true;
                 setStatus(isApproval ? 'Approving question paper...' : 'Deleting Cloudinary PDF files...', 'info');
 
-                if (!isApproval) {
+                if (isApproval) {
+                    const approvedAssets = await approveCloudinaryAssets(paper);
+                    payload.cloudinaryApprovedAt = serverTimestamp();
+                    payload.cloudinaryApproveResults = approvedAssets;
+                } else {
                     const deletedAssets = await deleteRejectedCloudinaryAssets(paper);
                     payload.cloudinaryDeletedAt = serverTimestamp();
                     payload.cloudinaryDeleteResults = deletedAssets;
