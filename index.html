@@ -763,6 +763,11 @@
                     <p class="muted"><strong>Provided email:</strong> ${escapeHtml(submitterEmail || 'No email saved')}</p>
                     <p class="muted"><strong>Admin notice:</strong> ${escapeHtml(paper.adminNotificationMessage || `${submitterHandle} submitted a question for this course for this exam for this trimester for approval.`)}</p>
                     <p class="muted"><strong>File:</strong> ${escapeHtml(paper.originalFilename || 'Question PDF')}</p>
+                    
+                    <div class="pdf-preview-pane" style="margin: 14px 0; border: 2px solid var(--border-color); border-radius: 10px; overflow: hidden; height: 450px; background-color: #ffffff;">
+                        <iframe src="${escapeHtml(paper.pdfUrl)}" width="100%" height="100%" style="border: none;" title="PDF Document Preview"></iframe>
+                    </div>
+
                     <div class="item-actions">
                         <a class="link-button" href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">Open PDF</a>
                         ${solutionLink}
@@ -772,7 +777,6 @@
                 `;
             }).join('');
         }
-
         function listenForQuestionPapers() {
             if (unsubscribeQuestions) {
                 unsubscribeQuestions();
@@ -942,124 +946,147 @@
             return data.deleted || [];
         }
 
-        async function updateQuestionStatus(paperId, status, actionButton = null) {
-            if (!isAdmin || !currentUser) {
-                setStatus('Only a signed-in admin can update question papers.', 'error');
-                return;
-            }
+       async function updateQuestionStatus(paperId, status, actionButton = null) {
+    if (!isAdmin || !currentUser) {
+        setStatus('Only a signed-in admin can update question papers.', 'error');
+        return;
+    }
 
-            const isApproval = status === 'approved';
-            const paper = currentPapers.find(item => item.id === paperId);
+    const isApproval = status === 'approved';
+    const paper = currentPapers.find(item => item.id === paperId);
 
-            if (!paper) {
-                setStatus('Could not find this question paper in the current list. Refresh and try again.', 'error');
-                return;
-            }
+    if (!paper) {
+        setStatus('Could not find this question paper in the current list. Refresh and try again.', 'error');
+        return;
+    }
 
-            if (!isApproval && !window.confirm('Reject this submission and permanently delete its Cloudinary PDF files?')) {
-                return;
-            }
+    if (!isApproval && !window.confirm('Reject this submission and permanently delete its Cloudinary PDF files?')) {
+        return;
+    }
 
-            const payload = isApproval
-                ? {
-                    status: 'approved',
-                    approvedAt: serverTimestamp(),
-                    approvedByUid: currentUser.uid,
-                    approvedByEmail: currentUser.email || ''
-                }
-                : {
-                    status: 'rejected',
-                    rejectedAt: serverTimestamp(),
-                    rejectedByUid: currentUser.uid,
-                    rejectedByEmail: currentUser.email || ''
-            };
+    const payload = isApproval
+        ? {
+            status: 'approved',
+            approvedAt: serverTimestamp(),
+            approvedByUid: currentUser.uid,
+            approvedByEmail: currentUser.email || ''
+        }
+        : {
+            status: 'rejected',
+            rejectedAt: serverTimestamp(),
+            rejectedByUid: currentUser.uid,
+            rejectedByEmail: currentUser.email || ''
+        };
 
-            try {
-                if (actionButton) actionButton.disabled = true;
-                setStatus(isApproval ? 'Approving question paper...' : 'Deleting Cloudinary PDF files...', 'info');
+    try {
+        if (actionButton) actionButton.disabled = true;
+        setStatus(isApproval ? 'Approving question paper...' : 'Deleting Cloudinary PDF files...', 'info');
 
-                if (isApproval) {
-                    const approvedAssets = await approveCloudinaryAssets(paper);
-                    payload.cloudinaryApprovedAt = serverTimestamp();
-                    payload.cloudinaryApproveResults = approvedAssets;
-                } else {
-                    const deletedAssets = await deleteRejectedCloudinaryAssets(paper);
-                    payload.cloudinaryDeletedAt = serverTimestamp();
-                    payload.cloudinaryDeleteResults = deletedAssets;
-                }
-
-                await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
-                setStatus(isApproval ? 'Question paper approved. It is now visible in the public Question Bank.' : 'Question paper rejected and deleted from Cloudinary.', 'success');
-            } catch (error) {
-                console.error('Could not update question status:', error);
-                setStatus(error.message || 'Could not update question paper.', 'error');
-            } finally {
-                if (actionButton) actionButton.disabled = false;
-            }
+        if (isApproval) {
+            const approvedAssets = await approveCloudinaryAssets(paper);
+            payload.cloudinaryApprovedAt = serverTimestamp();
+            payload.cloudinaryApproveResults = approvedAssets;
+        } else {
+            const deletedAssets = await deleteRejectedCloudinaryAssets(paper);
+            payload.cloudinaryDeletedAt = serverTimestamp();
+            payload.cloudinaryDeleteResults = deletedAssets;
         }
 
-        showCreateBtn.addEventListener('click', () => setAuthMode('create'));
-        showSignInBtn.addEventListener('click', () => setAuthMode('signin'));
-        createAccountForm.addEventListener('submit', handleCreateAccount);
-        signInForm.addEventListener('submit', handleSignIn);
-        authPanelBtn.addEventListener('click', () => {
-            loginPanel.style.display = 'block';
-            loginPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth);
-        });
-        searchInput.addEventListener('input', renderPapers);
-        typeFilter.addEventListener('change', renderPapers);
-        pendingTabBtn.addEventListener('click', () => setActiveQuestionStatus('pending'));
-        approvedTabBtn.addEventListener('click', () => setActiveQuestionStatus('approved'));
+        await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
 
-        paperList.addEventListener('click', event => {
-            const actionButton = event.target.closest('button[data-approve], button[data-reject]');
-            if (!actionButton) return;
+        // Send email notification to the submitter via backend
+        try {
+            const idToken = await currentUser.getIdToken();
+            await fetch('/api/questions/notify', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: getSubmitterEmail(paper),
+                    status: status,
+                    courseCode: paper.courseCode,
+                    courseName: paper.courseName,
+                    examType: paper.examType,
+                    trimester: paper.trimester
+                })
+            });
+        } catch (emailError) {
+            console.error('Email notification failed:', emailError);
+        }
 
-            const approveId = actionButton.getAttribute('data-approve');
-            const rejectId = actionButton.getAttribute('data-reject');
-            if (approveId) updateQuestionStatus(approveId, 'approved', actionButton);
-            if (rejectId) updateQuestionStatus(rejectId, 'rejected', actionButton);
-        });
+        setStatus(isApproval ? 'Question paper approved. It is now visible in the public Question Bank.' : 'Question paper rejected and deleted from Cloudinary.', 'success');
+    } catch (error) {
+        console.error('Could not update question status:', error);
+        setStatus(error.message || 'Could not update question paper.', 'error');
+    } finally {
+        if (actionButton) actionButton.disabled = false;
+    }
+}
 
-        onAuthStateChanged(auth, async user => {
-            currentUser = user;
-            isAdmin = false;
+showCreateBtn.addEventListener('click', () => setAuthMode('create'));
+showSignInBtn.addEventListener('click', () => setAuthMode('signin'));
+createAccountForm.addEventListener('submit', handleCreateAccount);
+signInForm.addEventListener('submit', handleSignIn);
+authPanelBtn.addEventListener('click', () => {
+    loginPanel.style.display = 'block';
+    loginPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+logoutBtn.addEventListener('click', () => {
+    signOut(auth);
+});
+searchInput.addEventListener('input', renderPapers);
+typeFilter.addEventListener('change', renderPapers);
+pendingTabBtn.addEventListener('click', () => setActiveQuestionStatus('pending'));
+approvedTabBtn.addEventListener('click', () => setActiveQuestionStatus('approved'));
 
-            if (!user) {
-                setSignedOutUi();
-                return;
-            }
+paperList.addEventListener('click', event => {
+    const actionButton = event.target.closest('button[data-approve], button[data-reject]');
+    if (!actionButton) return;
 
-            if (!isUniversityEmail(user.email)) {
-                setStatus(`${user.email} is not a UIU university email.`, 'error');
-                await signOut(auth);
-                return;
-            }
+    const approveId = actionButton.getAttribute('data-approve');
+    const rejectId = actionButton.getAttribute('data-reject');
+    if (approveId) updateQuestionStatus(approveId, 'approved', actionButton);
+    if (rejectId) updateQuestionStatus(rejectId, 'rejected', actionButton);
+});
 
-            setSignedInUi(user);
+onAuthStateChanged(auth, async user => {
+    currentUser = user;
+    isAdmin = false;
 
-            try {
-                isAdmin = await checkAdminAccess(user);
-                if (!isAdmin) {
-                    loginPanel.style.display = 'none';
-                    reviewPanel.style.display = 'block';
-                    setStatus(`${user.email} is signed in, but this account is not listed as an admin yet.`, 'error');
-                    listenForQuestionPapers();
-                    return;
-                }
+    if (!user) {
+        setSignedOutUi();
+        return;
+    }
 
-                loginPanel.style.display = 'none';
-                reviewPanel.style.display = 'block';
-                setStatus('Admin verified. Loading questions...', 'success');
-                listenForQuestionPapers();
-            } catch (error) {
-                console.error('Admin verification failed:', error);
-                setStatus('Could not verify admin access. Check Firestore admin document rules.', 'error');
-            }
-        });
+    if (!isUniversityEmail(user.email)) {
+        setStatus(`${user.email} is not a UIU university email.`, 'error');
+        await signOut(auth);
+        return;
+    }
+
+    setSignedInUi(user);
+
+    try {
+        isAdmin = await checkAdminAccess(user);
+        if (!isAdmin) {
+            loginPanel.style.display = 'none';
+            reviewPanel.style.display = 'block';
+            setStatus(`${user.email} is signed in, but this account is not listed as an admin yet.`, 'error');
+            listenForQuestionPapers();
+            return;
+        }
+
+        loginPanel.style.display = 'none';
+        reviewPanel.style.display = 'block';
+        setStatus('Admin verified. Loading questions...', 'success');
+        listenForQuestionPapers();
+    } catch (error) {
+        console.error('Admin verification failed:', error);
+        setStatus('Could not verify admin access. Check Firestore admin document rules.', 'error');
+    }
+});
     </script>
 </body>
 </html>
