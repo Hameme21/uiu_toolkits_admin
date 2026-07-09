@@ -505,7 +505,7 @@ const server = http.createServer((request, response) => {
         return;
     }
 
-    const pathname = url.pathname === '/' ? '/uiu_toolkits.html' : url.pathname;
+    const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
     const requestedPath = path.normalize(path.join(rootDir, decodeURIComponent(pathname)));
     const relativePath = path.relative(rootDir, requestedPath);
 
