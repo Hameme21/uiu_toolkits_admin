@@ -2,7 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const nodemailer = require('nodemailer'); // Added dependency
+const nodemailer = require('nodemailer');
 
 const rootDir = __dirname;
 const port = Number(process.env.PORT || 4175);
@@ -15,8 +15,8 @@ const firebaseWebApiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyA028mrZX2Rc
 // SMTP Configuration for Email Notifications
 const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
 const smtpPort = Number(process.env.SMTP_PORT || 587);
-const smtpUser = process.env.SMTP_USER || ''; // Set your email address here
-const smtpPass = process.env.SMTP_PASS || ''; // Set your app password here
+const smtpUser = process.env.SMTP_USER || ''; 
+const smtpPass = process.env.SMTP_PASS || ''; 
 const emailFrom = process.env.EMAIL_FROM || 'UIU Toolkits <noreply@uiu-toolkits.com>';
 
 const adminEmails = (process.env.ADMIN_EMAILS || 'ahamim2510370@bscse.uiu.ac.bd')
@@ -228,7 +228,6 @@ async function handleCloudinarySignUpload(request, response) {
         const courseCode = normalizeText(body.courseCode).replace(/\s+/g, ' ').toUpperCase();
         const assetLabel = normalizeText(body.assetLabel);
         
-        // Changed from 'raw' to 'image' to fix the browser preview loading error
         const resourceType = 'image';
 
         if (!isValidAssetType(assetType)) {
@@ -373,37 +372,14 @@ async function handleCloudinaryDelete(request, response) {
             deleted.push(await destroyCloudinaryAsset(asset));
         }
 
-sendJson(response, 200, {
-            success: true,
-            message: 'Question metadata validated. Save this submission to Firestore from the client.',
-            submission: {
-                title: `${courseCode} - ${courseName} ${examType} ${trimester}`,
-                courseCode,
-                courseName,
-                trimester,
-                examType,
-                submitterEmail,
-                status: 'pending',
-                pdfUrl: questionAsset.secure_url || questionAsset.secureUrl || '',
-                cloudinaryPublicId: questionAsset.public_id || questionAsset.publicId || '',
-                
-                // CHANGE THIS LINE FROM 'raw' TO 'image'
-                cloudinaryResourceType: 'image',
-                
-                cloudinaryAssetId: questionAsset.asset_id || questionAsset.assetId || '',
-                bytes: questionAsset.bytes || 0,
-                originalFilename: questionAsset.original_filename || questionAsset.originalFilename || '',
-                solutionPdfUrl: solutionAsset?.secure_url || solutionAsset?.secureUrl || '',
-                solutionCloudinaryPublicId: solutionAsset?.public_id || solutionAsset?.publicId || '',
-                
-                // CHANGE THIS LINE FROM 'raw' TO 'image'
-                solutionCloudinaryResourceType: solutionAsset ? 'image' : '',
-                
-                solutionCloudinaryAssetId: solutionAsset?.asset_id || solutionAsset?.assetId || '',
-                solutionBytes: solutionAsset?.bytes || 0,
-                solutionOriginalFilename: solutionAsset?.original_filename || solutionAsset?.originalFilename || ''
-            }
+        sendJson(response, 200, { deleted }, requestOrigin);
+    } catch (error) {
+        console.error('Cloudinary delete failed:', error);
+        sendJson(response, error.statusCode || 500, {
+            error: error.message || 'Cloudinary delete failed.'
         }, requestOrigin);
+    }
+}
 
 async function handleCloudinaryApproveAssets(request, response) {
     if (request.method !== 'POST') {
@@ -483,13 +459,13 @@ async function handleQuestionsSubmit(request, response) {
                 status: 'pending',
                 pdfUrl: questionAsset.secure_url || questionAsset.secureUrl || '',
                 cloudinaryPublicId: questionAsset.public_id || questionAsset.publicId || '',
-                cloudinaryResourceType: 'raw',
+                cloudinaryResourceType: 'image',
                 cloudinaryAssetId: questionAsset.asset_id || questionAsset.assetId || '',
                 bytes: questionAsset.bytes || 0,
                 originalFilename: questionAsset.original_filename || questionAsset.originalFilename || '',
                 solutionPdfUrl: solutionAsset?.secure_url || solutionAsset?.secureUrl || '',
                 solutionCloudinaryPublicId: solutionAsset?.public_id || solutionAsset?.publicId || '',
-                solutionCloudinaryResourceType: solutionAsset ? 'raw' : '',
+                solutionCloudinaryResourceType: solutionAsset ? 'image' : '',
                 solutionCloudinaryAssetId: solutionAsset?.asset_id || solutionAsset?.assetId || '',
                 solutionBytes: solutionAsset?.bytes || 0,
                 solutionOriginalFilename: solutionAsset?.original_filename || solutionAsset?.originalFilename || ''
@@ -503,7 +479,6 @@ async function handleQuestionsSubmit(request, response) {
     }
 }
 
-// Added endpoint to process review results and send email notifications
 async function handleQuestionsNotify(request, response) {
     if (request.method !== 'POST') {
         sendJson(response, 405, { error: 'Method not allowed.' }, getRequestOrigin(request));
@@ -577,7 +552,7 @@ const apiRoutes = {
     '/api/cloudinary/approve-assets': handleCloudinaryApproveAssets,
     '/api/questions/submit': handleQuestionsSubmit,
     '/api/questions/upload': handleQuestionsSubmit,
-    '/api/questions/notify': handleQuestionsNotify // Registered route
+    '/api/questions/notify': handleQuestionsNotify 
 };
 
 const server = http.createServer((request, response) => {
