@@ -1280,6 +1280,47 @@
 
         const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
+        const getMainFileUrl = (sub) => {
+            if (!sub) return '';
+            return sub.pdfUrl || sub.fileUrl || sub.notePdfUrl || (sub.materialAssets && sub.materialAssets.find(a => a.assetType !== 'solution')?.pdfUrl) || (sub.materialAssets && sub.materialAssets[0]?.pdfUrl) || '';
+        };
+
+        const getSolutionFileUrl = (sub) => {
+            if (!sub) return '';
+            return sub.solutionPdfUrl || sub.solutionUrl || (sub.materialAssets && sub.materialAssets.find(a => a.assetType === 'solution')?.pdfUrl) || '';
+        };
+
+        function renderFilePreview(container, url, label = 'File') {
+            if (!url) {
+                container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);padding:2rem;">
+                    <i class="fas fa-file-excel" style="font-size:3rem;margin-bottom:1rem;opacity:0.5;"></i>
+                    <p>No ${label.toLowerCase()} attached to this submission.</p>
+                </div>`;
+                return;
+            }
+            const isPdf = url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('/raw/') || url.toLowerCase().includes('pdf') || true;
+            if (isPdf) {
+                container.innerHTML = `
+                    <div style="display:flex;flex-direction:column;height:100%;width:100%;min-height:480px;">
+                        <div style="background:var(--bg);padding:0.5rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;">
+                            <span style="color:var(--text-muted);"><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:0.4rem;"></i> Document Preview</span>
+                            <a href="${url}" target="_blank" download class="btn btn-outline" style="padding:0.2rem 0.6rem;font-size:0.75rem;"><i class="fas fa-external-link-alt"></i> Open Full Page</a>
+                        </div>
+                        <iframe src="${url}" style="width:100%;height:480px;border:none;background:#fff;" title="PDF Preview"></iframe>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;padding:1rem;overflow:auto;">
+                        <img src="${url}" alt="${label} Preview" style="max-width:100%;max-height:450px;object-fit:contain;border-radius:4px;box-shadow:var(--shadow);">
+                        <div style="margin-top:1rem;">
+                            <a href="${url}" target="_blank" download class="btn btn-outline" style="padding:0.3rem 0.8rem;font-size:0.8rem;"><i class="fas fa-download"></i> Download Image</a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         // Auth
         let isRegisterMode = false;
         const toggleAuthBtn = document.getElementById('toggle-auth-mode');
@@ -1653,28 +1694,16 @@
 
             // Setup preview
             const previewContainer = document.getElementById('preview-container');
-            const fileUrl = sub.fileUrl;
-            if(fileUrl) {
-                if(fileUrl.toLowerCase().endsWith('.pdf')) {
-                    previewContainer.innerHTML = `<iframe src="${fileUrl}"></iframe>`;
-                } else {
-                    previewContainer.innerHTML = `<img src="${fileUrl}" alt="Preview">`;
-                }
-            } else {
-                previewContainer.innerHTML = '<p>No file attached</p>';
-            }
+            const mainUrl = getMainFileUrl(sub);
+            const solUrl = getSolutionFileUrl(sub);
 
             const tabSol = document.getElementById('tab-solution');
-            if(sub.solutionUrl) {
+            if(solUrl) {
                 tabSol.style.display = 'block';
                 tabSol.onclick = () => {
                     document.querySelectorAll('.preview-tab').forEach(t=>t.classList.remove('active'));
                     tabSol.classList.add('active');
-                    if(sub.solutionUrl.toLowerCase().endsWith('.pdf')) {
-                        previewContainer.innerHTML = `<iframe src="${sub.solutionUrl}"></iframe>`;
-                    } else {
-                        previewContainer.innerHTML = `<img src="${sub.solutionUrl}" alt="Solution Preview">`;
-                    }
+                    renderFilePreview(previewContainer, solUrl, 'Solution File');
                 };
             } else {
                 tabSol.style.display = 'none';
@@ -1684,11 +1713,7 @@
             tabMain.onclick = () => {
                 document.querySelectorAll('.preview-tab').forEach(t=>t.classList.remove('active'));
                 tabMain.classList.add('active');
-                if(fileUrl && fileUrl.toLowerCase().endsWith('.pdf')) {
-                    previewContainer.innerHTML = `<iframe src="${fileUrl}"></iframe>`;
-                } else if(fileUrl) {
-                    previewContainer.innerHTML = `<img src="${fileUrl}" alt="Preview">`;
-                }
+                renderFilePreview(previewContainer, mainUrl, 'Main File');
             };
             tabMain.click();
 
@@ -1719,25 +1744,34 @@
                     updatedAt: serverTimestamp()
                 };
 
+                const adminEmail = currentUser?.email || 'admin@bscse.uiu.ac.bd';
                 if(status === 'approved') {
                     updateData.approvedAt = serverTimestamp();
-                    updateData.approvedByEmail = currentUser.email;
+                    updateData.approvedByEmail = adminEmail;
                 } else if(status === 'rejected') {
                     updateData.rejectedAt = serverTimestamp();
-                    updateData.rejectedByEmail = currentUser.email;
+                    updateData.rejectedByEmail = adminEmail;
                 }
 
-                await updateDoc(docRef, updateData);
+                try {
+                    await updateDoc(docRef, updateData);
+                } catch (updateErr) {
+                    await setDoc(docRef, updateData, { merge: true });
+                }
 
                 // Audit Log
-                await addDoc(collection(db, AUDIT_COLLECTION), {
-                    action: actionName,
-                    adminEmail: currentUser.email,
-                    targetId: id,
-                    targetCourse: currentReviewDoc.courseCode,
-                    notes: comment,
-                    timestamp: serverTimestamp()
-                });
+                try {
+                    await addDoc(collection(db, AUDIT_COLLECTION), {
+                        action: actionName,
+                        adminEmail: adminEmail,
+                        targetId: id,
+                        targetCourse: currentReviewDoc.courseCode,
+                        notes: comment,
+                        timestamp: serverTimestamp()
+                    });
+                } catch (auditErr) {
+                    console.warn('Audit log write skipped:', auditErr);
+                }
 
                 // Backend Email Notification & Asset Management Call
                 try {
@@ -1796,16 +1830,25 @@
 
                 const updateData = { courseCode, semester, trimester, materialType, examType, topic };
                 
-                await updateDoc(doc(db, QUESTION_COLLECTION, currentReviewDoc.id), updateData);
+                const adminEmail = currentUser?.email || 'admin@bscse.uiu.ac.bd';
+                try {
+                    await updateDoc(doc(db, QUESTION_COLLECTION, currentReviewDoc.id), updateData);
+                } catch (updateErr) {
+                    await setDoc(doc(db, QUESTION_COLLECTION, currentReviewDoc.id), updateData, { merge: true });
+                }
                 
-                await addDoc(collection(db, AUDIT_COLLECTION), {
-                    action: 'EDIT_METADATA',
-                    adminEmail: currentUser.email,
-                    targetId: currentReviewDoc.id,
-                    targetCourse: courseCode,
-                    notes: 'Admin updated submission metadata',
-                    timestamp: serverTimestamp()
-                });
+                try {
+                    await addDoc(collection(db, AUDIT_COLLECTION), {
+                        action: 'EDIT_METADATA',
+                        adminEmail: adminEmail,
+                        targetId: currentReviewDoc.id,
+                        targetCourse: courseCode,
+                        notes: 'Admin updated submission metadata',
+                        timestamp: serverTimestamp()
+                    });
+                } catch (auditErr) {
+                    console.warn('Audit log write skipped:', auditErr);
+                }
 
                 Object.assign(currentReviewDoc, updateData);
                 
