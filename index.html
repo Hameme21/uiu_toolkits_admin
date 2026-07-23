@@ -3,1090 +3,1491 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UIU Toolkits | Question Bank Admin</title>
-    <link rel="icon" type="image/png" href="logo.png">
+    <title>UIU CSE Question Bank - Admin Portal</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
-            --uiu-orange: #F37021;
-            --uiu-blue: #005696;
-            --bg-body: #fdf8f5;
-            --bg-container: #ffffff;
-            --bg-input: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --border-color: #ffdcb0;
-            --primary-color: #F37021;
-            --secondary-color: #005696;
-            --shadow: 0 8px 30px rgba(243, 112, 33, 0.12);
-            --gradient-primary: linear-gradient(135deg, #F37021 0%, #ff985c 100%);
-            --gradient-secondary: linear-gradient(135deg, #005696 0%, #0081d1 100%);
-            --success-bg: #e8f5e9;
-            --success-text: #1b5e20;
-            --danger-bg: #ffebee;
-            --danger-text: #d32f2f;
-            --warning-bg: #fff3e0;
+            --primary: #F37021;
+            --primary-hover: #d95e14;
+            --secondary: #005696;
+            --secondary-hover: #00427a;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+            
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            
+            --sidebar-width: 250px;
+            --header-height: 70px;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --transition: all 0.2s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0b0f19;
+            --surface: #151c2c;
+            --surface-hover: #1e293b;
+            --border: #232d42;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
         }
 
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
             color: var(--text-main);
-            background: linear-gradient(135deg, var(--bg-body) 0%, #fff0e6 100%);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: var(--transition);
         }
 
-        nav {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(12px);
-            border-bottom: 3px solid transparent;
-            border-image: var(--gradient-primary);
-            border-image-slice: 1;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--primary-color);
-            font-weight: 800;
+        a {
+            color: var(--info);
             text-decoration: none;
         }
+        
+        a:hover {
+            text-decoration: underline;
+        }
 
-        .logo img {
-            width: auto;
-            height: 30px;
+        /* --- Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
             border-radius: 4px;
         }
-
-        .container {
-            width: 100%;
-            max-width: 1100px;
-            margin: 24px auto;
-            padding: 0 20px 40px;
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
 
-        .hero {
-            margin-bottom: 22px;
+        /* --- Auth View --- */
+        #auth-view {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+            background-color: var(--bg);
+            z-index: 1000;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .auth-card {
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
             text-align: center;
         }
-
-        h1 {
-            margin: 0 0 10px;
-            color: var(--primary-color);
-            font-size: 2.3rem;
+        
+        .auth-card h2 {
+            margin-bottom: 0.5rem;
+            color: var(--primary);
         }
-
-        .subtitle,
-        .muted {
+        
+        .auth-card p {
             color: var(--text-muted);
-            line-height: 1.55;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
         }
 
-        .card {
-            padding: 22px;
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            background: var(--bg-container);
-            box-shadow: var(--shadow);
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: inherit;
+            transition: var(--transition);
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(243, 112, 33, 0.1);
         }
 
-        .login-panel {
-            max-width: 620px;
-            margin: 0 auto 22px;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: var(--surface-hover); }
+
+        /* --- App Layout --- */
+        #app-layout {
+            display: none; /* hidden until auth */
+            width: 100%;
+            height: 100%;
         }
 
-        .review-panel {
-            display: none;
-        }
-
-        .toolbar {
+        /* --- Sidebar --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--surface);
+            border-right: 1px solid var(--border);
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .sidebar-brand {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--primary);
+            gap: 0.75rem;
+        }
+        
+        .sidebar-brand i {
+            font-size: 1.5rem;
+            color: var(--secondary);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            transition: var(--transition);
+            gap: 1rem;
+        }
+        
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+        
+        .nav-item:hover {
+            background-color: var(--surface-hover);
+            color: var(--text-main);
+        }
+        
+        .nav-item.active {
+            background-color: rgba(243, 112, 33, 0.1);
+            color: var(--primary);
+            border-right: 3px solid var(--primary);
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .admin-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .admin-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .admin-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .admin-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: var(--bg);
+        }
+
+        .header {
+            height: var(--header-height);
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 18px;
+            padding: 0 2rem;
+        }
+        
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 600;
         }
 
-        .auth-actions,
-        .item-actions,
-        .meta {
+        .header-actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             align-items: center;
+            gap: 1rem;
         }
 
-        .profile-badge {
-            display: none;
+        .search-bar {
+            display: flex;
             align-items: center;
-            gap: 10px;
-            min-height: 42px;
-            padding: 6px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: #ffffff;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            width: 300px;
         }
-
-        .profile-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: var(--warning-bg);
-        }
-
-        .profile-copy {
-            display: grid;
-            gap: 2px;
-            line-height: 1.1;
-        }
-
-        .profile-name {
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-
-        .profile-email {
-            max-width: 230px;
-            overflow: hidden;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        button,
-        .link-button {
-            min-height: 42px;
-            padding: 10px 16px;
+        
+        .search-bar input {
             border: none;
-            border-radius: 8px;
-            color: #ffffff;
-            font-weight: 800;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-        }
-
-        button:hover,
-        .link-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-        }
-
-        button:disabled {
-            cursor: not-allowed;
-            opacity: 0.65;
-            transform: none;
-        }
-
-        .btn-primary {
-            background: var(--gradient-primary);
-        }
-
-        .btn-secondary,
-        .link-button {
-            background: var(--gradient-secondary);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #34ce57);
-        }
-
-        .btn-danger {
-            background: #ff4d4d;
-        }
-
-        input,
-        select {
+            background: transparent;
+            outline: none;
             width: 100%;
-            min-height: 46px;
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--bg-input);
+            margin-left: 0.5rem;
             color: var(--text-main);
-            font-size: 1rem;
         }
 
-        .filters {
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        
+        .icon-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+        }
+
+        /* --- Page Content --- */
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: none;
+        }
+        
+        .page-content.active {
+            display: block;
+        }
+
+        /* --- Dashboard Stats --- */
+        .stats-grid {
             display: grid;
-            grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
-            gap: 12px;
-            margin-bottom: 18px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .stat-info {
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
-        .auth-mode-tabs {
+        /* --- Cards & Tables --- */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        th {
+            background-color: var(--surface-hover);
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        
+        tbody tr:hover {
+            background-color: var(--surface-hover);
+        }
+
+        /* --- Badges --- */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .badge-review { background: rgba(59, 130, 246, 0.1); color: var(--info); border: 1px solid rgba(59, 130, 246, 0.2); }
+        .badge-approved { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-rejected { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .badge-revision { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); }
+
+        /* --- Review Modal --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .modal-container {
+            background: var(--surface);
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: var(--transition);
+        }
+        
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .modal-preview {
+            flex: 2;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+        }
+        
+        .preview-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+        
+        .preview-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        
+        .preview-tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .preview-content {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+        
+        .preview-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .preview-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .modal-details {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .detail-group h4 {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-group p {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .action-bar {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        .action-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 18px 0;
+            gap: 0.75rem;
         }
 
-        .auth-form {
-            display: grid;
-            gap: 12px;
-        }
-
-        .auth-form[hidden] {
-            display: none;
-        }
-
-        label {
-            display: grid;
-            gap: 6px;
-            color: var(--text-main);
-            font-weight: 800;
-        }
-
-        label span {
-            color: var(--text-muted);
-            font-size: 0.88rem;
-        }
-
-        .section-tabs {
+        /* --- Toast --- */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 2000;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 18px;
+            flex-direction: column;
+            gap: 0.75rem;
         }
-
-        .tab-button {
-            border: 2px solid var(--border-color);
-            background: #ffffff;
-            color: var(--secondary-color);
-        }
-
-        .tab-button.active {
-            border-color: transparent;
-            background: var(--gradient-secondary);
-            color: #ffffff;
-        }
-
-        .profile-summary {
+        
+        .toast {
+            background: var(--surface);
+            border-left: 4px solid var(--primary);
+            box-shadow: var(--shadow);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
             display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
             align-items: center;
-            margin-bottom: 18px;
-            padding: 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--bg-body);
+            gap: 1rem;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--danger); }
+        .toast.warning { border-color: var(--warning); }
+        .toast.info { border-color: var(--info); }
+        
+        .toast i { font-size: 1.25rem; }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast.warning i { color: var(--warning); }
+        .toast.info i { color: var(--info); }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(0,0,0,0.1);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
 
-        .profile-summary .profile-avatar {
-            width: 52px;
-            height: 52px;
-        }
-
-        .status {
-            margin: 14px 0;
-            padding: 12px 14px;
-            border-radius: 10px;
-            font-weight: 700;
-        }
-
-        .status.info {
-            background: var(--warning-bg);
-            color: var(--secondary-color);
-            border: 1px solid var(--primary-color);
-        }
-
-        .status.success {
-            background: var(--success-bg);
-            color: var(--success-text);
-            border: 1px solid #a5d6a7;
-        }
-
-        .status.error {
-            background: var(--danger-bg);
-            color: var(--danger-text);
-            border: 1px solid var(--danger-text);
-        }
-
-        .list {
-            display: grid;
-            gap: 14px;
-        }
-
-        .paper {
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-left: 5px solid var(--primary-color);
-            border-radius: 12px;
-            background: #ffffff;
-        }
-
-        .paper h2 {
-            margin: 0 0 8px;
-            color: var(--primary-color);
-            font-size: 1.25rem;
-        }
-
-        .pill {
-            padding: 5px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 999px;
-            background: var(--warning-bg);
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
             color: var(--text-main);
-            font-size: 0.82rem;
-            font-weight: 800;
+            outline: none;
         }
 
-        .empty {
-            padding: 28px 16px;
-            border: 1px dashed var(--border-color);
-            border-radius: 12px;
-            background: var(--bg-body);
-            color: var(--text-muted);
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            nav,
-            .toolbar {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .container {
-                padding: 0 10px 28px;
-                margin-top: 12px;
-            }
-
-            .card {
-                padding: 16px;
-            }
-
-            .filters {
-                grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 1.75rem;
-            }
-        }
     </style>
 </head>
 <body>
-    <nav>
-        <a href="https://uiu-toolkits.vercel.app/" class="logo">
-            <img src="logo.png" alt="UIU Toolkits Logo">
-            UIU Toolkits Admin
-        </a>
-        <div class="auth-actions">
-            <div id="profileBox" class="profile-badge">
-                <img id="profileAvatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
-                <div class="profile-copy">
-                    <span id="profileName" class="profile-name">Not signed in</span>
-                    <span id="profileEmail" class="profile-email">Waiting for login</span>
+
+    <!-- Auth View -->
+    <div id="auth-view">
+        <div class="auth-card">
+            <h2><span style="color: var(--secondary)">UIU</span> <span style="color: var(--primary)">Admin</span></h2>
+            <p>Question Bank Approval Portal</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Admin Email (@uiu.ac.bd)</label>
+                    <input type="email" id="login-email" required placeholder="admin@uiu.ac.bd">
                 </div>
-            </div>
-            <button id="authPanelBtn" class="btn-primary">Account</button>
-            <button id="logoutBtn" class="btn-danger" style="display: none;">Sign Out</button>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" id="login-btn">
+                    <span>Sign In</span>
+                </button>
+            </form>
+            <div id="auth-error" style="color: var(--danger); margin-top: 1rem; font-size: 0.85rem; display: none;"></div>
         </div>
-    </nav>
+    </div>
 
-    <main class="container">
-        <section class="hero">
-            <h1>Question Bank Approval</h1>
-            <p class="subtitle">Review submitted question PDFs before they appear in the public Question Bank.</p>
-        </section>
-
-        <section class="card login-panel" id="loginPanel">
-            <h2 style="color: var(--primary-color); margin-top: 0;">Admin Account</h2>
-            <p class="muted">Create an account or sign in with your UIU university email. Admin access is granted only to approved accounts.</p>
-
-            <div class="auth-mode-tabs">
-                <button id="showCreateBtn" class="tab-button active" type="button">Create Account</button>
-                <button id="showSignInBtn" class="tab-button" type="button">Sign In</button>
+    <!-- Main App Layout -->
+    <div id="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fas fa-shield-halved"></i>
+                <span>QB Admin</span>
             </div>
-
-            <form id="createAccountForm" class="auth-form">
-                <label>
-                    <span>Full name</span>
-                    <input type="text" id="createName" autocomplete="name" placeholder="Your name" required>
-                </label>
-                <label>
-                    <span>UIU email</span>
-                    <input type="email" id="createEmail" autocomplete="email" placeholder="name@bscse.uiu.ac.bd" required>
-                </label>
-                <label>
-                    <span>Password</span>
-                    <input type="password" id="createPassword" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" required>
-                </label>
-                <button id="createAccountBtn" class="btn-primary" type="submit">Create Account</button>
-            </form>
-
-            <form id="signInForm" class="auth-form" hidden>
-                <label>
-                    <span>UIU email</span>
-                    <input type="email" id="signInEmail" autocomplete="email" placeholder="name@bscse.uiu.ac.bd" required>
-                </label>
-                <label>
-                    <span>Password</span>
-                    <input type="password" id="signInPassword" autocomplete="current-password" placeholder="Your password" required>
-                </label>
-                <button id="signInBtn" class="btn-primary" type="submit">Sign In</button>
-            </form>
-
-            <div id="loginStatusBox" class="status info" style="margin-bottom: 0;">Waiting for admin login.</div>
-        </section>
-
-        <section class="card review-panel" id="reviewPanel">
-            <div class="toolbar">
-                <div>
-                    <strong id="adminIdentity">Not signed in</strong>
-                    <p class="muted" style="margin: 5px 0 0;">Only approved admin accounts can approve or reject papers.</p>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-target="dashboard">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a>
+                <a href="#queue" class="nav-item" data-target="queue">
+                    <i class="fas fa-list-check"></i> Review Queue
+                </a>
+                <a href="#audit" class="nav-item" data-target="audit">
+                    <i class="fas fa-history"></i> Audit Logs
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-profile">
+                    <div class="admin-avatar" id="sidebar-avatar">A</div>
+                    <div class="admin-info">
+                        <span class="admin-name" id="sidebar-name">Admin User</span>
+                        <span class="admin-role">Super Admin</span>
+                    </div>
                 </div>
-                <span class="pill" id="pendingCount">0 pending</span>
+                <button class="icon-btn" id="logout-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
+        </aside>
 
-            <div class="profile-summary">
-                <img id="dashboardAvatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
-                <div>
-                    <strong id="dashboardName">Not signed in</strong>
-                    <p id="dashboardEmail" class="muted" style="margin: 4px 0 0;">Waiting for login</p>
-                    <p id="dashboardUid" class="muted" style="margin: 4px 0 0;">UID will appear after login</p>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 class="header-title" id="page-title">Dashboard</h1>
+                
+                <div class="header-actions">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="global-search" placeholder="Search course, ID, topic...">
+                    </div>
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Dark Mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Page -->
+            <section class="page-content active" id="page-dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-pending">0</div>
+                            <div class="stat-label">Pending Submissions</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-approved">0</div>
+                            <div class="stat-label">Total Approved</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-rejected">0</div>
+                            <div class="stat-label">Total Rejected</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-revision">0</div>
+                            <div class="stat-label">Needs Revision</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Pending Submissions</h3>
+                        <a href="#queue" class="btn btn-outline" style="padding: 0.4rem 1rem; font-size: 0.85rem;" id="view-all-btn">View All</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="dashboard-recent-table">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Topic / Term</th>
+                                    <th>Type</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Review Queue Page -->
+            <section class="page-content" id="page-queue">
+                <div class="filters-bar">
+                    <select class="filter-select" id="filter-status">
+                        <option value="all">All Statuses</option>
+                        <option value="pending" selected>Pending</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="needs_revision">Needs Revision</option>
+                    </select>
+                    <select class="filter-select" id="filter-type">
+                        <option value="all">All Types</option>
+                        <option value="question">Question Paper</option>
+                        <option value="note">Hand Note</option>
+                        <option value="solution">Solution</option>
+                    </select>
+                    <input type="text" class="filter-select" id="filter-search" placeholder="Search by course..." style="flex:1;">
+                </div>
+                
+                <div class="card">
+                    <div class="table-responsive">
+                        <table id="queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Trimester & Semester</th>
+                                    <th>Topic / Title</th>
+                                    <th>Type</th>
+                                    <th>Submitter</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audit Log Page -->
+            <section class="page-content" id="page-audit">
+                <div class="card">
+                    <div class="table-responsive">
+                        <table id="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Admin</th>
+                                    <th>Action</th>
+                                    <th>Target Document</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">Review Submission</h3>
+                <button class="icon-btn close-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-preview">
+                    <div class="preview-tabs">
+                        <div class="preview-tab active" data-target="main-file">Main File</div>
+                        <div class="preview-tab" data-target="solution-file" id="tab-solution" style="display:none;">Solution File</div>
+                    </div>
+                    <div class="preview-content" id="preview-container">
+                        <!-- Iframe or Img injected here -->
+                    </div>
+                </div>
+                <div class="modal-details">
+                    <div class="detail-group">
+                        <h4>Course</h4>
+                        <p id="modal-course">CSE 1110 - Introduction to Computer Systems</p>
+                    </div>
+                    <div class="detail-group">
+                        <h4>Academic Semester & Trimester</h4>
+                        <p id="modal-semester">Spring 2024 (Trimester 1)</p>
+                    </div>
+                    <div class="detail-group">
+                        <h4>Material Details</h4>
+                        <p id="modal-type">Midterm Question Paper</p>
+                    </div>
+                    <div class="detail-group">
+                        <h4>Topic / Title</h4>
+                        <p id="modal-topic">Midterm Question Fall 23</p>
+                    </div>
+                    <div class="detail-group">
+                        <h4>Submitter Info</h4>
+                        <p id="modal-submitter">student@bscse.uiu.ac.bd</p>
+                    </div>
+                    <div class="detail-group">
+                        <h4>Submitted On</h4>
+                        <p id="modal-date">Oct 24, 2024</p>
+                    </div>
+                    
+                    <div class="action-bar">
+                        <div class="form-group">
+                            <label>Admin Comments / Revision Reason</label>
+                            <textarea id="modal-comment" rows="3" placeholder="Explain why it's rejected or needs revision..."></textarea>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-success" id="btn-approve"><i class="fas fa-check"></i> Approve</button>
+                            <button class="btn btn-danger" id="btn-reject"><i class="fas fa-times"></i> Reject</button>
+                            <button class="btn btn-warning" id="btn-revision" style="grid-column: span 2;"><i class="fas fa-edit"></i> Request Revision</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div id="statusBox" class="status info">Sign in to load pending submissions.</div>
-
-            <div class="section-tabs" aria-label="Question status sections">
-                <button id="pendingTabBtn" class="tab-button active" type="button">Pending Uploads</button>
-                <button id="approvedTabBtn" class="tab-button" type="button">Approved Questions</button>
-            </div>
-
-            <div class="filters">
-                <input type="text" id="searchInput" placeholder="Search course name, code, trimester, or submitter email...">
-                <select id="typeFilter">
-                    <option value="">All Types</option>
-                    <option value="Midterm">Midterm</option>
-                    <option value="Final">Final</option>
-                    <option value="Quiz">Quiz</option>
-                    <option value="Assignment">Assignment</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <div id="paperList" class="list">
-                <div class="empty">Pending submissions will appear here after admin sign-in.</div>
-            </div>
-        </section>
-    </main>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-        import { getAnalytics, isSupported } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js';
         import {
-            collection,
-            doc,
-            getDoc,
-            getFirestore,
-            onSnapshot,
-            query,
-            serverTimestamp,
-            updateDoc,
-            where
-        } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-        import {
-            createUserWithEmailAndPassword,
-            getAuth,
-            onAuthStateChanged,
-            signInWithEmailAndPassword,
-            signOut,
-            updateProfile
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+        import {
+            getFirestore, collection, doc, query, where, onSnapshot, getDocs, getDoc, updateDoc, addDoc, serverTimestamp, deleteDoc, orderBy
+        } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
         const firebaseConfig = {
-        apiKey: "AIzaSyA028mrZX2RcDewoBTy0vLHOXWAGR61mOk",
-        authDomain: "uiu-toolkits-admin.firebaseapp.com",
-        databaseURL: "https://uiu-toolkits-admin-default-rtdb.firebaseio.com",
-        projectId: "uiu-toolkits-admin",
-        storageBucket: "uiu-toolkits-admin.firebasestorage.app",
-        messagingSenderId: "643628466748",
-        appId: "1:643628466748:web:84d4392faf2466654db939",
-        measurementId: "G-3BW6M1SXLP"
+            apiKey: 'AIzaSyA028mrZX2RcDewoBTy0vLHOXWAGR61mOk',
+            authDomain: 'uiu-toolkits-admin.firebaseapp.com',
+            databaseURL: 'https://uiu-toolkits-admin-default-rtdb.firebaseio.com',
+            projectId: 'uiu-toolkits-admin',
+            storageBucket: 'uiu-toolkits-admin.firebasestorage.app',
+            messagingSenderId: '643628466748',
+            appId: '1:643628466748:web:84d4392faf2466654db939',
+            measurementId: 'G-3BW6M1SXLP'
         };
-
-        const QUESTION_COLLECTION = 'questionPapers';
-        const ADMIN_EMAILS = ['ahamim2510370@bscse.uiu.ac.bd'];
 
         const app = initializeApp(firebaseConfig);
-        isSupported().then(supported => {
-            if (supported) getAnalytics(app);
-        });
-        const db = getFirestore(app);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const QUESTION_COLLECTION = 'questionPapers';
+        const AUDIT_COLLECTION = 'auditLogs';
+
+        const CURRICULUM = [
+            { code: 'CSE 1110', title: 'Introduction to Computer Systems', credits: 3, trimester: 1, aliases: ['ICS'] },
+            { code: 'ENG 1011', title: 'English I', credits: 3, trimester: 1, aliases: [] },
+            { code: 'GED 1011', title: 'History of the Emergence of Bangladesh', credits: 3, trimester: 1, aliases: ['HEB'] },
+            { code: 'MAT 1101', title: 'Fundamental Calculus', credits: 3, trimester: 1, aliases: ['Calculus'] },
+            { code: 'CSE 1111', title: 'Structured Programming Language', credits: 3, trimester: 2, aliases: ['SPL', 'C Programming'] },
+            { code: 'CSE 1112', title: 'Structured Programming Language Lab', credits: 1, trimester: 2, aliases: ['SPL Lab'] },
+            { code: 'CSE 2213', title: 'Discrete Mathematics', credits: 3, trimester: 2, aliases: ['DM'] },
+            { code: 'ENG 1012', title: 'English II', credits: 3, trimester: 2, aliases: [] },
+            { code: 'MAT 1102', title: 'Calculus II', credits: 3, trimester: 2, aliases: [] },
+            { code: 'CSE 2215', title: 'Data Structures & Algorithms I', credits: 3, trimester: 3, aliases: ['DSA', 'DSA I', 'Data Structures'] },
+            { code: 'CSE 2216', title: 'Data Structures & Algorithms I Lab', credits: 1, trimester: 3, aliases: ['DSA Lab'] },
+            { code: 'MAT 2101', title: 'Calculus & Linear Algebra', credits: 3, trimester: 3, aliases: [] },
+            { code: 'PHY 2105', title: 'Physics I', credits: 3, trimester: 3, aliases: ['Physics'] },
+            { code: 'PHY 2106', title: 'Physics I Lab', credits: 1, trimester: 3, aliases: [] },
+            { code: 'CSE 1115', title: 'Object Oriented Programming', credits: 3, trimester: 4, aliases: ['OOP'] },
+            { code: 'CSE 1116', title: 'Object Oriented Programming Lab', credits: 1, trimester: 4, aliases: ['OOP Lab'] },
+            { code: 'CSE 1325', title: 'Digital Logic Design', credits: 3, trimester: 4, aliases: ['DLD'] },
+            { code: 'CSE 1326', title: 'Digital Logic Design Lab', credits: 1, trimester: 4, aliases: ['DLD Lab'] },
+            { code: 'MAT 2102', title: 'Coordinate Geometry & Vector Analysis', credits: 3, trimester: 4, aliases: [] },
+            { code: 'CSE 2217', title: 'Data Structures & Algorithms II', credits: 3, trimester: 5, aliases: ['DSA II'] },
+            { code: 'CSE 2218', title: 'Data Structures & Algorithms II Lab', credits: 1, trimester: 5, aliases: ['DSA II Lab'] },
+            { code: 'SOC 2101', title: 'Society, Ethics & Technology', credits: 3, trimester: 5, aliases: [] },
+            { code: 'MAT 2103', title: 'Probability & Statistics', credits: 3, trimester: 5, aliases: ['Prob Stats'] },
+            { code: 'EEE 2113', title: 'Electrical Circuits', credits: 3, trimester: 5, aliases: [] },
+            { code: 'EEE 2114', title: 'Electrical Circuits Lab', credits: 1, trimester: 5, aliases: [] },
+            { code: 'CSE 3521', title: 'Database Management Systems', credits: 3, trimester: 6, aliases: ['DBMS', 'Database'] },
+            { code: 'CSE 3522', title: 'Database Management Systems Lab', credits: 1, trimester: 6, aliases: ['DBMS Lab'] },
+            { code: 'CSE 4165', title: 'Web Programming', credits: 3, trimester: 6, aliases: ['Web Dev'] },
+            { code: 'EEE 2123', title: 'Electronics', credits: 3, trimester: 6, aliases: [] },
+            { code: 'EEE 2124', title: 'Electronics Lab', credits: 1, trimester: 6, aliases: [] },
+            { code: 'CSE 2118', title: 'Advanced OOP Lab', credits: 1, trimester: 6, aliases: [] },
+            { code: 'CSE 3313', title: 'Computer Architecture', credits: 3, trimester: 7, aliases: ['CA', 'Comp Arch'] },
+            { code: 'CSE 3411', title: 'System Analysis & Design', credits: 3, trimester: 7, aliases: ['SAD'] },
+            { code: 'CSE 3412', title: 'System Analysis & Design Lab', credits: 1, trimester: 7, aliases: ['SAD Lab'] },
+            { code: 'MAT 2104', title: 'Complex Variables & Fourier Analysis', credits: 3, trimester: 7, aliases: [] },
+            { code: 'CSE 4325', title: 'Microprocessors & Microcontrollers', credits: 3, trimester: 8, aliases: ['Micro'] },
+            { code: 'CSE 4326', title: 'Microprocessors & Microcontrollers Lab', credits: 1, trimester: 8, aliases: ['Micro Lab'] },
+            { code: 'CSE 4533', title: 'Software Engineering', credits: 3, trimester: 8, aliases: ['SE'] },
+            { code: 'CSE 4534', title: 'Software Engineering Lab', credits: 1, trimester: 8, aliases: ['SE Lab'] },
+            { code: 'CSE 4509', title: 'Operating Systems', credits: 3, trimester: 9, aliases: ['OS'] },
+            { code: 'CSE 4510', title: 'Operating Systems Lab', credits: 1, trimester: 9, aliases: ['OS Lab'] },
+            { code: 'CSE 4535', title: 'Computer Security', credits: 3, trimester: 9, aliases: ['Security', 'Cyber Security'] },
+            { code: 'CSE 4811', title: 'Artificial Intelligence', credits: 3, trimester: 9, aliases: ['AI'] },
+            { code: 'CSE 4537', title: 'Computer Networks', credits: 3, trimester: 10, aliases: ['CN', 'Networking'] },
+            { code: 'CSE 4538', title: 'Computer Networks Lab', credits: 1, trimester: 10, aliases: ['CN Lab'] },
+            { code: 'CSE 4881', title: 'FYDP Pre-Capstone', credits: 1, trimester: 10, aliases: ['FYDP I'] },
+            { code: 'CSE 4882', title: 'FYDP I', credits: 2, trimester: 11, aliases: ['FYDP II', 'Final Year Design Project'] },
+            { code: 'CSE 4883', title: 'FYDP II', credits: 2, trimester: 12, aliases: ['FYDP III'] },
+            { code: 'CSE 4539', title: 'Data Mining', credits: 3, trimester: 0, aliases: [] },
+            { code: 'CSE 4541', title: 'Machine Learning', credits: 3, trimester: 0, aliases: ['ML'] },
+            { code: 'CSE 4543', title: 'Image Processing', credits: 3, trimester: 0, aliases: ['IP'] },
+            { code: 'CSE 4545', title: 'Natural Language Processing', credits: 3, trimester: 0, aliases: ['NLP'] },
+            { code: 'CSE 4813', title: 'Theory of Computation', credits: 3, trimester: 0, aliases: ['TOC'] },
+            { code: 'CSE 4815', title: 'Compiler Design', credits: 3, trimester: 0, aliases: [] },
+            { code: 'CSE 4547', title: 'Cloud Computing', credits: 3, trimester: 0, aliases: [] },
+            { code: 'CSE 4549', title: 'Cyber Security Advanced', credits: 3, trimester: 0, aliases: [] },
+            { code: 'CSE 4551', title: 'IoT & Embedded Systems', credits: 3, trimester: 0, aliases: ['IoT'] },
+            { code: 'CSE 4553', title: 'Human Computer Interaction', credits: 3, trimester: 0, aliases: ['HCI'] },
+            { code: 'CSE 4555', title: 'Blockchain Technology', credits: 3, trimester: 0, aliases: [] },
+            { code: 'CSE 4557', title: 'Deep Learning', credits: 3, trimester: 0, aliases: ['DL'] },
+            { code: 'CSE 4559', title: 'Computer Graphics', credits: 3, trimester: 0, aliases: ['CG'] },
+            { code: 'CSE 4561', title: 'Robotics', credits: 3, trimester: 0, aliases: [] },
+            { code: 'BIO 1101', title: 'Biology for Engineers', credits: 3, trimester: 0, aliases: [] },
+            { code: 'GED 2012', title: 'Bangladesh Studies', credits: 3, trimester: 0, aliases: [] }
+        ];
 
         let currentUser = null;
-        let isAdmin = false;
-        let currentPapers = [];
-        let activeQuestionStatus = 'pending';
-        let unsubscribeQuestions = null;
+        let allSubmissions = [];
+        let unsubscribeSubmissions = null;
+        let currentReviewDoc = null;
 
-        const authPanelBtn = document.getElementById('authPanelBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const showCreateBtn = document.getElementById('showCreateBtn');
-        const showSignInBtn = document.getElementById('showSignInBtn');
-        const createAccountForm = document.getElementById('createAccountForm');
-        const signInForm = document.getElementById('signInForm');
-        const createAccountBtn = document.getElementById('createAccountBtn');
-        const signInBtn = document.getElementById('signInBtn');
-        const createName = document.getElementById('createName');
-        const createEmail = document.getElementById('createEmail');
-        const createPassword = document.getElementById('createPassword');
-        const signInEmail = document.getElementById('signInEmail');
-        const signInPassword = document.getElementById('signInPassword');
-        const profileBox = document.getElementById('profileBox');
-        const profileAvatar = document.getElementById('profileAvatar');
-        const profileName = document.getElementById('profileName');
-        const profileEmail = document.getElementById('profileEmail');
-        const dashboardAvatar = document.getElementById('dashboardAvatar');
-        const dashboardName = document.getElementById('dashboardName');
-        const dashboardEmail = document.getElementById('dashboardEmail');
-        const dashboardUid = document.getElementById('dashboardUid');
-        const loginPanel = document.getElementById('loginPanel');
-        const reviewPanel = document.getElementById('reviewPanel');
-        const loginStatusBox = document.getElementById('loginStatusBox');
-        const statusBox = document.getElementById('statusBox');
-        const paperList = document.getElementById('paperList');
-        const adminIdentity = document.getElementById('adminIdentity');
-        const pendingCount = document.getElementById('pendingCount');
-        const searchInput = document.getElementById('searchInput');
-        const typeFilter = document.getElementById('typeFilter');
-        const pendingTabBtn = document.getElementById('pendingTabBtn');
-        const approvedTabBtn = document.getElementById('approvedTabBtn');
-
-        function setStatus(message, type = 'info') {
-            statusBox.textContent = message;
-            statusBox.className = `status ${type}`;
-            loginStatusBox.textContent = message;
-            loginStatusBox.className = `status ${type}`;
-        }
-
-        function setSignedOutUi(message = 'Sign in to load pending submissions.') {
-            adminIdentity.textContent = 'Not signed in';
-            profileBox.style.display = 'none';
-            profileAvatar.removeAttribute('src');
-            dashboardAvatar.removeAttribute('src');
-            profileName.textContent = 'Not signed in';
-            profileEmail.textContent = 'Waiting for login';
-            dashboardName.textContent = 'Not signed in';
-            dashboardEmail.textContent = 'Waiting for login';
-            dashboardUid.textContent = 'UID will appear after login';
-            authPanelBtn.style.display = 'inline-block';
-            createAccountBtn.disabled = false;
-            signInBtn.disabled = false;
-            logoutBtn.style.display = 'none';
-            loginPanel.style.display = 'block';
-            reviewPanel.style.display = 'none';
-            setStatus(message, 'info');
-            listenForQuestionPapers();
-        }
-
-        function setSignedInUi(user) {
-            const displayName = user.displayName || getEmailHandle(user.email);
-            adminIdentity.textContent = `Signed in as ${user.email}`;
-            profileBox.style.display = 'flex';
-            profileName.textContent = displayName;
-            profileEmail.textContent = user.email || 'No email available';
-            profileAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
-            dashboardName.textContent = displayName;
-            dashboardEmail.textContent = user.email || 'No email available';
-            dashboardUid.textContent = `UID: ${user.uid}`;
-            dashboardAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F37021&color=fff`;
-            authPanelBtn.style.display = 'none';
-            createAccountBtn.disabled = false;
-            signInBtn.disabled = false;
-            logoutBtn.style.display = 'inline-block';
-        }
-
-        function normalizeText(value) {
-            return String(value || '').trim();
-        }
-
-        function isUniversityEmail(value) {
-            return /^[a-z0-9._%+-]+@[a-z0-9-]+\.uiu\.ac\.bd$/i.test(normalizeText(value));
-        }
-
-        function getEmailHandle(email) {
-            return normalizeText(email).split('@')[0] || 'A student';
-        }
-
-        function getTrimesterLabel(value) {
-            const code = normalizeText(value);
-            const termLabels = {
-                '1': 'Spring',
-                '2': 'Summer',
-                '3': 'Fall'
-            };
-            const yearPrefix = code.slice(0, 2);
-            const termCode = code.slice(2);
-            const termLabel = termLabels[termCode];
-
-            if (!/^\d{2}[123]$/.test(code) || !termLabel) return value;
-            return `${code} - ${termLabel} 20${yearPrefix}`;
-        }
-
-        function getSubmitterEmail(paper) {
-            return normalizeText(
-                paper.submitterEmail ||
-                paper.contactEmail ||
-                paper.providedEmail ||
-                paper.userEmail ||
-                paper.gmail ||
-                paper.email
-            );
-        }
-
-        function getSubmitterHandle(paper) {
-            return normalizeText(paper.submitterHandle) || getEmailHandle(getSubmitterEmail(paper));
-        }
-
-        function escapeHtml(value) {
-            return String(value || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function formatFirestoreDate(value) {
-            if (!value) return 'Just now';
-            const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function paperFromDoc(snapshot) {
-            return {
-                id: snapshot.id,
-                ...snapshot.data()
-            };
-        }
-
-        function sortNewestFirst(a, b) {
-            const aMs = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : 0;
-            const bMs = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : 0;
-            return bMs - aMs;
-        }
-
-        function getStatusLabel(status = activeQuestionStatus) {
-            return status === 'approved' ? 'approved' : 'pending';
-        }
-
-        function setActiveQuestionStatus(status) {
-            activeQuestionStatus = status === 'approved' ? 'approved' : 'pending';
-            pendingTabBtn.classList.toggle('active', activeQuestionStatus === 'pending');
-            approvedTabBtn.classList.toggle('active', activeQuestionStatus === 'approved');
-            listenForQuestionPapers();
-        }
-
-        function renderPapers() {
-            const search = normalizeText(searchInput.value).toLowerCase();
-            const type = normalizeText(typeFilter.value);
-
-            const filtered = currentPapers.filter(paper => {
-                const haystack = [
-                    paper.title,
-                    paper.courseName,
-                    paper.courseCode,
-                    paper.courseSearch,
-                    paper.trimester,
-                    paper.examType,
-                    getSubmitterEmail(paper),
-                    getSubmitterHandle(paper),
-                    paper.originalFilename
-                ].join(' ').toLowerCase();
-
-                return (!search || haystack.includes(search)) && (!type || paper.examType === type);
-            });
-
-            const statusLabel = getStatusLabel();
-            pendingCount.textContent = `${currentPapers.length} ${statusLabel}`;
-
-            if (!isAdmin) {
-                paperList.innerHTML = '<div class="empty">Your profile loaded, but this account does not have admin access yet. Add this email to the admin allowlist or create <code>admins/{uid}</code> in Firestore.</div>';
-                return;
-            }
-
-            if (filtered.length === 0) {
-                paperList.innerHTML = `<div class="empty">No ${statusLabel} question PDFs match the current filter.</div>`;
-                return;
-            }
-
-            paperList.innerHTML = filtered.map(paper => {
-                const courseTitle = paper.courseName
-                    ? `${paper.courseCode} - ${paper.courseName}`
-                    : (paper.title || paper.courseCode || 'Question Submission');
-                const solutionLink = paper.solutionPdfUrl
-                    ? `<a class="link-button" href="${escapeHtml(paper.solutionPdfUrl)}" target="_blank" rel="noopener">Open Solution</a>`
-                    : '';
-                const submitterEmail = getSubmitterEmail(paper);
-                const submitterHandle = getSubmitterHandle(paper);
-                const reviewActions = activeQuestionStatus === 'pending'
-                    ? `<button class="btn-success" data-approve="${paper.id}">Approve</button>
-                        <button class="btn-danger" data-reject="${paper.id}">Reject</button>`
-                    : '';
-
-                return `
-                    <article class="paper">
-                    <h2>${escapeHtml(courseTitle)}</h2>
-                    <div class="meta">
-                        <span class="pill">${escapeHtml(paper.courseCode)}</span>
-                        <span class="pill">${escapeHtml(paper.examType)}</span>
-                        <span class="pill">${escapeHtml(getTrimesterLabel(paper.trimester))}</span>
-                        <span class="pill">${formatFirestoreDate(paper.submittedAt)}</span>
-                    </div>
-                    <p class="muted"><strong>Provided email:</strong> ${escapeHtml(submitterEmail || 'No email saved')}</p>
-                    <p class="muted"><strong>Admin notice:</strong> ${escapeHtml(paper.adminNotificationMessage || `${submitterHandle} submitted a question for this course for this exam for this trimester for approval.`)}</p>
-                    <p class="muted"><strong>File:</strong> ${escapeHtml(paper.originalFilename || 'Question PDF')}</p>
-                    
-                    <div class="pdf-preview-pane" style="margin: 14px 0; border: 2px solid var(--border-color); border-radius: 10px; overflow: hidden; height: 450px; background-color: #ffffff;">
-                        <iframe src="${escapeHtml(paper.pdfUrl)}" width="100%" height="100%" style="border: none;" title="PDF Document Preview"></iframe>
-                    </div>
-
-                    <div class="item-actions">
-                        <a class="link-button" href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">Open PDF</a>
-                        ${solutionLink}
-                        ${reviewActions}
-                    </div>
-                </article>
-                `;
-            }).join('');
-        }
-        function listenForQuestionPapers() {
-            if (unsubscribeQuestions) {
-                unsubscribeQuestions();
-                unsubscribeQuestions = null;
-            }
-
-            if (!isAdmin) {
-                currentPapers = [];
-                renderPapers();
-                return;
-            }
-
-            const statusLabel = getStatusLabel();
-            const questionQuery = query(
-                collection(db, QUESTION_COLLECTION),
-                where('status', '==', activeQuestionStatus)
-            );
-
-            unsubscribeQuestions = onSnapshot(questionQuery, snapshot => {
-                currentPapers = snapshot.docs.map(paperFromDoc).sort(sortNewestFirst);
-                renderPapers();
-                setStatus(`${statusLabel.charAt(0).toUpperCase()}${statusLabel.slice(1)} questions loaded.`, 'success');
-            }, error => {
-                console.error(`Could not load ${statusLabel} submissions:`, error);
-                setStatus(`Could not load ${statusLabel} submissions. Check Firestore rules.`, 'error');
-            });
-        }
-
-        async function checkAdminAccess(user) {
-            if (!user) return false;
-            if (ADMIN_EMAILS.includes(normalizeText(user.email).toLowerCase())) return true;
-            const adminSnapshot = await getDoc(doc(db, 'admins', user.uid));
-            return adminSnapshot.exists();
-        }
-
-        function setAuthMode(mode) {
-            const createMode = mode !== 'signin';
-            createAccountForm.hidden = !createMode;
-            signInForm.hidden = createMode;
-            showCreateBtn.classList.toggle('active', createMode);
-            showSignInBtn.classList.toggle('active', !createMode);
-        }
-
-        function getAuthErrorMessage(error) {
-            const fallback = error?.message || 'Authentication failed. Please try again.';
-            const messages = {
-                'auth/email-already-in-use': 'This email already has an account. Please sign in instead.',
-                'auth/invalid-email': 'Please enter a valid UIU email address.',
-                'auth/invalid-credential': 'Email or password is incorrect.',
-                'auth/weak-password': 'Use a password with at least 6 characters.',
-                'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
-                'auth/user-not-found': 'No account was found for this email.'
-            };
-            return messages[error?.code] || fallback;
-        }
-
-        async function handleCreateAccount(event) {
-            event.preventDefault();
-            const name = normalizeText(createName.value);
-            const email = normalizeText(createEmail.value).toLowerCase();
-            const password = createPassword.value;
-
-            if (!name) {
-                setStatus('Enter your full name before creating the account.', 'error');
-                return;
-            }
-
-            if (!isUniversityEmail(email)) {
-                setStatus('Please use a UIU university email ending like @bscse.uiu.ac.bd.', 'error');
-                return;
-            }
-
-            try {
-                createAccountBtn.disabled = true;
-                setStatus('Creating account...', 'info');
-                const credential = await createUserWithEmailAndPassword(auth, email, password);
-                await updateProfile(credential.user, { displayName: name });
-                createAccountForm.reset();
-                setStatus('Account created. Checking admin access...', 'success');
-            } catch (error) {
-                console.error('Account creation failed:', error);
-                setStatus(getAuthErrorMessage(error), 'error');
-            } finally {
-                createAccountBtn.disabled = false;
-            }
-        }
-
-        async function handleSignIn(event) {
-            event.preventDefault();
-            const email = normalizeText(signInEmail.value).toLowerCase();
-            const password = signInPassword.value;
-
-            if (!isUniversityEmail(email)) {
-                setStatus('Please use a UIU university email ending like @bscse.uiu.ac.bd.', 'error');
-                return;
-            }
-
-            try {
-                signInBtn.disabled = true;
-                setStatus('Signing in...', 'info');
-                await signInWithEmailAndPassword(auth, email, password);
-                signInForm.reset();
-            } catch (error) {
-                console.error('Sign in failed:', error);
-                setStatus(getAuthErrorMessage(error), 'error');
-            } finally {
-                signInBtn.disabled = false;
-            }
-        }
-
-        function getCloudinaryAssets(paper) {
-            return [
-                {
-                    publicId: paper.cloudinaryPublicId,
-                    resourceType: paper.cloudinaryResourceType || 'raw',
-                    label: 'question PDF'
-                },
-                {
-                    publicId: paper.solutionCloudinaryPublicId,
-                    resourceType: paper.solutionCloudinaryResourceType || 'raw',
-                    label: 'solution PDF'
-                }
-            ].filter(asset => asset.publicId);
-        }
-
-        async function approveCloudinaryAssets(paper) {
-            const assets = getCloudinaryAssets(paper);
-            if (assets.length === 0) return [];
-
-            const idToken = await currentUser.getIdToken();
-            const response = await fetch('/api/cloudinary/approve-assets', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ assets })
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Cloudinary approve failed.');
-            }
-
-            return data.updated || [];
-        }
-
-        async function deleteRejectedCloudinaryAssets(paper) {
-            const assets = getCloudinaryAssets(paper);
-            if (assets.length === 0) return [];
-
-            const idToken = await currentUser.getIdToken();
-            const response = await fetch('/api/cloudinary/delete', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ assets })
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Cloudinary delete failed.');
-            }
-
-            return data.deleted || [];
-        }
-
-       async function updateQuestionStatus(paperId, status, actionButton = null) {
-    if (!isAdmin || !currentUser) {
-        setStatus('Only a signed-in admin can update question papers.', 'error');
-        return;
-    }
-
-    const isApproval = status === 'approved';
-    const paper = currentPapers.find(item => item.id === paperId);
-
-    if (!paper) {
-        setStatus('Could not find this question paper in the current list. Refresh and try again.', 'error');
-        return;
-    }
-
-    if (!isApproval && !window.confirm('Reject this submission and permanently delete its Cloudinary PDF files?')) {
-        return;
-    }
-
-    const payload = isApproval
-        ? {
-            status: 'approved',
-            approvedAt: serverTimestamp(),
-            approvedByUid: currentUser.uid,
-            approvedByEmail: currentUser.email || ''
-        }
-        : {
-            status: 'rejected',
-            rejectedAt: serverTimestamp(),
-            rejectedByUid: currentUser.uid,
-            rejectedByEmail: currentUser.email || ''
+        // UI Helpers
+        const showToast = (message, type = 'info') => {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'fa-info-circle';
+            if(type === 'success') icon = 'fa-check-circle';
+            if(type === 'error') icon = 'fa-times-circle';
+            if(type === 'warning') icon = 'fa-exclamation-triangle';
+            
+            toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         };
 
-    try {
-        if (actionButton) actionButton.disabled = true;
-        setStatus(isApproval ? 'Approving question paper...' : 'Deleting Cloudinary PDF files...', 'info');
+        const getCourseTitle = (code) => {
+            const course = CURRICULUM.find(c => c.code === code);
+            return course ? course.title : 'Unknown Course';
+        };
 
-        if (isApproval) {
-            const approvedAssets = await approveCloudinaryAssets(paper);
-            payload.cloudinaryApprovedAt = serverTimestamp();
-            payload.cloudinaryApproveResults = approvedAssets;
-        } else {
-            const deletedAssets = await deleteRejectedCloudinaryAssets(paper);
-            payload.cloudinaryDeletedAt = serverTimestamp();
-            payload.cloudinaryDeleteResults = deletedAssets;
-        }
+        const decodeSemester = (semCode) => {
+            if(!semCode || semCode.length !== 3) return 'Unknown';
+            const yearStr = semCode.substring(0, 2);
+            const termStr = semCode.substring(2);
+            const year = '20' + yearStr;
+            let term = '';
+            if(termStr === '1') term = 'Spring';
+            else if(termStr === '2') term = 'Summer';
+            else if(termStr === '3') term = 'Fall';
+            return `${term} ${year}`;
+        };
 
-        await updateDoc(doc(db, QUESTION_COLLECTION, paperId), payload);
+        const formatDate = (timestamp) => {
+            if(!timestamp) return 'N/A';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        };
 
-        // Send email notification to the submitter via backend
-        try {
-            const idToken = await currentUser.getIdToken();
-            await fetch('/api/questions/notify', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    email: getSubmitterEmail(paper),
-                    status: status,
-                    courseCode: paper.courseCode,
-                    courseName: paper.courseName,
-                    examType: paper.examType,
-                    trimester: paper.trimester
-                })
+        const getBadgeClass = (status) => {
+            switch(status) {
+                case 'approved': return 'badge-approved';
+                case 'rejected': return 'badge-rejected';
+                case 'needs_revision': return 'badge-revision';
+                case 'under_review': return 'badge-review';
+                default: return 'badge-pending';
+            }
+        };
+
+        const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
+        // Auth
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.email && user.email.endsWith('@uiu.ac.bd')) {
+                    currentUser = user;
+                    document.getElementById('auth-view').style.display = 'none';
+                    document.getElementById('app-layout').style.display = 'flex';
+                    document.getElementById('sidebar-name').textContent = user.email.split('@')[0];
+                    document.getElementById('sidebar-avatar').textContent = user.email.charAt(0).toUpperCase();
+                    initApp();
+                } else {
+                    document.getElementById('auth-error').textContent = 'Unauthorized. Use a valid @uiu.ac.bd admin account.';
+                    document.getElementById('auth-error').style.display = 'block';
+                    signOut(auth);
+                }
+            } else {
+                document.getElementById('auth-view').style.display = 'flex';
+                document.getElementById('app-layout').style.display = 'none';
+                if(unsubscribeSubmissions) unsubscribeSubmissions();
+            }
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            btn.innerHTML = '<div class="loader"></div>';
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (err) {
+                document.getElementById('auth-error').textContent = err.message;
+                document.getElementById('auth-error').style.display = 'block';
+            } finally {
+                btn.innerHTML = '<span>Sign In</span>';
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        // App Initialization
+        const initApp = () => {
+            setupNavigation();
+            setupTheme();
+            fetchSubmissions();
+            fetchAuditLogs();
+        };
+
+        // Navigation
+        const setupNavigation = () => {
+            const navItems = document.querySelectorAll('.nav-item');
+            const pages = document.querySelectorAll('.page-content');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const targetId = item.getAttribute('data-target');
+                    if(!targetId) return;
+                    
+                    navItems.forEach(n => n.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    pages.forEach(p => p.classList.remove('active'));
+                    document.getElementById(`page-${targetId}`).classList.add('active');
+                    
+                    document.getElementById('page-title').textContent = item.textContent.trim();
+                });
             });
-        } catch (emailError) {
-            console.error('Email notification failed:', emailError);
-        }
 
-        setStatus(isApproval ? 'Question paper approved. It is now visible in the public Question Bank.' : 'Question paper rejected and deleted from Cloudinary.', 'success');
-    } catch (error) {
-        console.error('Could not update question status:', error);
-        setStatus(error.message || 'Could not update question paper.', 'error');
-    } finally {
-        if (actionButton) actionButton.disabled = false;
-    }
-}
+            document.getElementById('view-all-btn').addEventListener('click', () => {
+                document.querySelector('.nav-item[data-target="queue"]').click();
+            });
+        };
 
-showCreateBtn.addEventListener('click', () => setAuthMode('create'));
-showSignInBtn.addEventListener('click', () => setAuthMode('signin'));
-createAccountForm.addEventListener('submit', handleCreateAccount);
-signInForm.addEventListener('submit', handleSignIn);
-authPanelBtn.addEventListener('click', () => {
-    loginPanel.style.display = 'block';
-    loginPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
-logoutBtn.addEventListener('click', () => {
-    signOut(auth);
-});
-searchInput.addEventListener('input', renderPapers);
-typeFilter.addEventListener('change', renderPapers);
-pendingTabBtn.addEventListener('click', () => setActiveQuestionStatus('pending'));
-approvedTabBtn.addEventListener('click', () => setActiveQuestionStatus('approved'));
+        // Theme
+        const setupTheme = () => {
+            const btn = document.getElementById('theme-toggle');
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            
+            btn.addEventListener('click', () => {
+                const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            });
+        };
 
-paperList.addEventListener('click', event => {
-    const actionButton = event.target.closest('button[data-approve], button[data-reject]');
-    if (!actionButton) return;
+        // Data Fetching
+        const fetchSubmissions = () => {
+            const q = query(collection(db, QUESTION_COLLECTION), orderBy('createdAt', 'desc'));
+            unsubscribeSubmissions = onSnapshot(q, (snapshot) => {
+                allSubmissions = [];
+                let pendingCount = 0;
+                let approvedCount = 0;
+                let rejectedCount = 0;
+                let revisionCount = 0;
 
-    const approveId = actionButton.getAttribute('data-approve');
-    const rejectId = actionButton.getAttribute('data-reject');
-    if (approveId) updateQuestionStatus(approveId, 'approved', actionButton);
-    if (rejectId) updateQuestionStatus(rejectId, 'rejected', actionButton);
-});
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    allSubmissions.push(data);
+                    
+                    if(data.status === 'pending' || !data.status) pendingCount++;
+                    if(data.status === 'approved') approvedCount++;
+                    if(data.status === 'rejected') rejectedCount++;
+                    if(data.status === 'needs_revision') revisionCount++;
+                });
 
-onAuthStateChanged(auth, async user => {
-    currentUser = user;
-    isAdmin = false;
+                document.getElementById('stat-pending').textContent = pendingCount;
+                document.getElementById('stat-approved').textContent = approvedCount;
+                document.getElementById('stat-rejected').textContent = rejectedCount;
+                document.getElementById('stat-revision').textContent = revisionCount;
 
-    if (!user) {
-        setSignedOutUi();
-        return;
-    }
+                renderDashboardRecent();
+                renderQueueTable();
+            });
+        };
 
-    if (!isUniversityEmail(user.email)) {
-        setStatus(`${user.email} is not a UIU university email.`, 'error');
-        await signOut(auth);
-        return;
-    }
+        const fetchAuditLogs = async () => {
+            const q = query(collection(db, AUDIT_COLLECTION), orderBy('timestamp', 'desc'));
+            onSnapshot(q, (snapshot) => {
+                const tbody = document.querySelector('#audit-table tbody');
+                tbody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${formatDate(data.timestamp)}</td>
+                        <td>${data.adminEmail}</td>
+                        <td><span class="badge ${data.action === 'APPROVE' ? 'badge-approved' : data.action === 'REJECT' ? 'badge-rejected' : 'badge-revision'}">${data.action}</span></td>
+                        <td>${data.targetCourse || data.targetId}</td>
+                        <td>${data.notes || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        };
 
-    setSignedInUi(user);
+        // Rendering
+        const renderDashboardRecent = () => {
+            const tbody = document.querySelector('#dashboard-recent-table tbody');
+            tbody.innerHTML = '';
+            
+            const recent = allSubmissions.filter(s => s.status === 'pending' || !s.status).slice(0, 5);
+            
+            if(recent.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No pending submissions</td></tr>';
+                return;
+            }
 
-    try {
-        isAdmin = await checkAdminAccess(user);
-        if (!isAdmin) {
-            loginPanel.style.display = 'none';
-            reviewPanel.style.display = 'block';
-            setStatus(`${user.email} is signed in, but this account is not listed as an admin yet.`, 'error');
-            listenForQuestionPapers();
-            return;
-        }
+            recent.forEach(sub => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${sub.courseCode}</strong><br><small style="color:var(--text-muted);">${getCourseTitle(sub.courseCode)}</small></td>
+                    <td>${sub.topic || sub.examType}<br><small style="color:var(--text-muted);">${decodeSemester(sub.semester)}</small></td>
+                    <td>${capitalize(sub.materialType)}</td>
+                    <td>${formatDate(sub.createdAt)}</td>
+                    <td><button class="btn btn-outline btn-review" data-id="${sub.id}" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Review</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            attachReviewListeners();
+        };
 
-        loginPanel.style.display = 'none';
-        reviewPanel.style.display = 'block';
-        setStatus('Admin verified. Loading questions...', 'success');
-        listenForQuestionPapers();
-    } catch (error) {
-        console.error('Admin verification failed:', error);
-        setStatus('Could not verify admin access. Check Firestore admin document rules.', 'error');
-    }
-});
+        const renderQueueTable = () => {
+            const tbody = document.querySelector('#queue-table tbody');
+            tbody.innerHTML = '';
+            
+            const filterStatus = document.getElementById('filter-status').value;
+            const filterType = document.getElementById('filter-type').value;
+            const filterSearch = document.getElementById('filter-search').value.toLowerCase();
+
+            let filtered = allSubmissions.filter(sub => {
+                let match = true;
+                const status = sub.status || 'pending';
+                if(filterStatus !== 'all' && status !== filterStatus) match = false;
+                if(filterType !== 'all' && sub.materialType !== filterType) match = false;
+                if(filterSearch) {
+                    const searchStr = `${sub.courseCode} ${getCourseTitle(sub.courseCode)} ${sub.topic} ${sub.submitterEmail}`.toLowerCase();
+                    if(!searchStr.includes(filterSearch)) match = false;
+                }
+                return match;
+            });
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding: 2rem;">No submissions found matching criteria</td></tr>';
+                return;
+            }
+
+            filtered.forEach(sub => {
+                const tr = document.createElement('tr');
+                const status = sub.status || 'pending';
+                tr.innerHTML = `
+                    <td><strong>${sub.courseCode}</strong></td>
+                    <td>${sub.trimester ? 'T' + sub.trimester : '-'} | ${decodeSemester(sub.semester)}</td>
+                    <td>${sub.topic || '-'}</td>
+                    <td>${capitalize(sub.materialType)}</td>
+                    <td>${sub.submitterEmail || 'Anonymous'}</td>
+                    <td><span class="badge ${getBadgeClass(status)}">${capitalize(status.replace('_', ' '))}</span></td>
+                    <td>
+                        <button class="btn btn-outline btn-review" data-id="${sub.id}" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                            ${status === 'pending' ? 'Review' : 'View'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            attachReviewListeners();
+        };
+
+        document.getElementById('filter-status').addEventListener('change', renderQueueTable);
+        document.getElementById('filter-type').addEventListener('change', renderQueueTable);
+        document.getElementById('filter-search').addEventListener('input', renderQueueTable);
+
+        // Modal Logic
+        const attachReviewListeners = () => {
+            document.querySelectorAll('.btn-review').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('.btn-review').getAttribute('data-id');
+                    openReviewModal(id);
+                });
+            });
+        };
+
+        const openReviewModal = (id) => {
+            const sub = allSubmissions.find(s => s.id === id);
+            if(!sub) return;
+            currentReviewDoc = sub;
+
+            document.getElementById('modal-course').textContent = `${sub.courseCode} - ${getCourseTitle(sub.courseCode)}`;
+            document.getElementById('modal-semester').textContent = `${decodeSemester(sub.semester)} ${sub.trimester ? '(Trimester '+sub.trimester+')' : ''}`;
+            document.getElementById('modal-type').textContent = `${capitalize(sub.materialType)} ${sub.examType ? '- ' + capitalize(sub.examType) : ''}`;
+            document.getElementById('modal-topic').textContent = sub.topic || 'N/A';
+            document.getElementById('modal-submitter').textContent = sub.submitterEmail || 'N/A';
+            document.getElementById('modal-date').textContent = formatDate(sub.createdAt);
+            document.getElementById('modal-comment').value = sub.adminComment || '';
+
+            // Setup preview
+            const previewContainer = document.getElementById('preview-container');
+            const fileUrl = sub.fileUrl;
+            if(fileUrl) {
+                if(fileUrl.toLowerCase().endsWith('.pdf')) {
+                    previewContainer.innerHTML = `<iframe src="${fileUrl}"></iframe>`;
+                } else {
+                    previewContainer.innerHTML = `<img src="${fileUrl}" alt="Preview">`;
+                }
+            } else {
+                previewContainer.innerHTML = '<p>No file attached</p>';
+            }
+
+            const tabSol = document.getElementById('tab-solution');
+            if(sub.solutionUrl) {
+                tabSol.style.display = 'block';
+                tabSol.onclick = () => {
+                    document.querySelectorAll('.preview-tab').forEach(t=>t.classList.remove('active'));
+                    tabSol.classList.add('active');
+                    if(sub.solutionUrl.toLowerCase().endsWith('.pdf')) {
+                        previewContainer.innerHTML = `<iframe src="${sub.solutionUrl}"></iframe>`;
+                    } else {
+                        previewContainer.innerHTML = `<img src="${sub.solutionUrl}" alt="Solution Preview">`;
+                    }
+                };
+            } else {
+                tabSol.style.display = 'none';
+            }
+
+            const tabMain = document.querySelector('.preview-tab[data-target="main-file"]');
+            tabMain.onclick = () => {
+                document.querySelectorAll('.preview-tab').forEach(t=>t.classList.remove('active'));
+                tabMain.classList.add('active');
+                if(fileUrl && fileUrl.toLowerCase().endsWith('.pdf')) {
+                    previewContainer.innerHTML = `<iframe src="${fileUrl}"></iframe>`;
+                } else if(fileUrl) {
+                    previewContainer.innerHTML = `<img src="${fileUrl}" alt="Preview">`;
+                }
+            };
+            tabMain.click();
+
+            // Status overrides for buttons
+            const isProcessed = sub.status === 'approved' || sub.status === 'rejected';
+            document.getElementById('btn-approve').disabled = isProcessed;
+            document.getElementById('btn-reject').disabled = isProcessed;
+            
+            document.getElementById('reviewModal').classList.add('active');
+        };
+
+        document.querySelector('.close-modal').addEventListener('click', () => {
+            document.getElementById('reviewModal').classList.remove('active');
+            currentReviewDoc = null;
+        });
+
+        // Action Handlers
+        const updateStatus = async (status, actionName) => {
+            if(!currentReviewDoc) return;
+            const id = currentReviewDoc.id;
+            const comment = document.getElementById('modal-comment').value;
+
+            try {
+                const docRef = doc(db, QUESTION_COLLECTION, id);
+                const updateData = { 
+                    status, 
+                    adminComment: comment,
+                    updatedAt: serverTimestamp()
+                };
+
+                if(status === 'approved') {
+                    updateData.approvedAt = serverTimestamp();
+                    updateData.approvedByEmail = currentUser.email;
+                } else if(status === 'rejected') {
+                    updateData.rejectedAt = serverTimestamp();
+                    updateData.rejectedByEmail = currentUser.email;
+                }
+
+                await updateDoc(docRef, updateData);
+
+                // Audit Log
+                await addDoc(collection(db, AUDIT_COLLECTION), {
+                    action: actionName,
+                    adminEmail: currentUser.email,
+                    targetId: id,
+                    targetCourse: currentReviewDoc.courseCode,
+                    notes: comment,
+                    timestamp: serverTimestamp()
+                });
+
+                // Backend Email Notification & Asset Management Call
+                try {
+                    const idToken = await currentUser.getIdToken();
+                    await fetch('/api/questions/notify', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${idToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: currentReviewDoc.submitterEmail || currentReviewDoc.contactEmail || '',
+                            status: status,
+                            courseCode: currentReviewDoc.courseCode,
+                            courseName: currentReviewDoc.courseName || getCourseTitle(currentReviewDoc.courseCode),
+                            examType: currentReviewDoc.examType,
+                            trimester: currentReviewDoc.trimester,
+                            topic: currentReviewDoc.topic
+                        })
+                    });
+                } catch (notifyErr) {
+                    console.warn('Backend notification dispatch error:', notifyErr);
+                }
+
+                showToast(`Submission ${status.replace('_', ' ')} successfully.`, status === 'approved' ? 'success' : (status === 'rejected' ? 'error' : 'warning'));
+                document.getElementById('reviewModal').classList.remove('active');
+
+            } catch(err) {
+                console.error(err);
+                showToast('Error updating status: ' + err.message, 'error');
+            }
+        };
+
+        document.getElementById('btn-approve').addEventListener('click', () => updateStatus('approved', 'APPROVE'));
+        document.getElementById('btn-reject').addEventListener('click', () => updateStatus('rejected', 'REJECT'));
+        document.getElementById('btn-revision').addEventListener('click', () => updateStatus('needs_revision', 'REVISION'));
+
     </script>
 </body>
 </html>
