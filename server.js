@@ -6,9 +6,9 @@ const nodemailer = require('nodemailer');
 
 const rootDir = __dirname;
 const port = Number(process.env.PORT || 4175);
-const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME || 'drdfnqwgp';
-const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY || '446696958986529';
-const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET || 'K4ou6kKpdRe91Cb-zeBDsGXUI64';
+const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME || '';
+const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY || '';
+const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET || '';
 const cloudinaryUploadFolder = process.env.CLOUDINARY_UPLOAD_FOLDER || 'uiu-toolkits/question-bank';
 const firebaseWebApiKey = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyA028mrZX2RcDewoBTy0vLHOXWAGR61mOk';
 
