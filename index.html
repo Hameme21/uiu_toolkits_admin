@@ -710,11 +710,11 @@
     <div id="auth-view">
         <div class="auth-card">
             <h2><span style="color: var(--secondary)">UIU</span> <span style="color: var(--primary)">Admin</span></h2>
-            <p>Question Bank Approval Portal</p>
+            <p id="auth-subtitle">Question Bank Approval Portal</p>
             <form id="login-form">
                 <div class="form-group">
                     <label>Admin Email (@uiu.ac.bd)</label>
-                    <input type="email" id="login-email" required placeholder="admin@uiu.ac.bd">
+                    <input type="email" id="login-email" required placeholder="name@bscse.uiu.ac.bd">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
@@ -724,6 +724,11 @@
                     <span>Sign In</span>
                 </button>
             </form>
+            <div style="margin-top: 1rem; text-align: center;">
+                <button type="button" id="toggle-auth-mode" style="background:none; border:none; color:var(--primary); font-size:0.85rem; cursor:pointer; text-decoration:underline;">
+                    Need an admin account? Register here
+                </button>
+            </div>
             <div id="auth-error" style="color: var(--danger); margin-top: 1rem; font-size: 0.85rem; display: none;"></div>
         </div>
     </div>
@@ -974,10 +979,10 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
         import {
-            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
         import {
-            getFirestore, collection, doc, query, where, onSnapshot, getDocs, getDoc, updateDoc, addDoc, serverTimestamp, deleteDoc, orderBy
+            getFirestore, collection, doc, query, where, onSnapshot, getDocs, getDoc, updateDoc, addDoc, setDoc, serverTimestamp, deleteDoc, orderBy
         } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -1127,17 +1132,48 @@
         const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
         // Auth
-        onAuthStateChanged(auth, (user) => {
+        let isRegisterMode = false;
+        const toggleAuthBtn = document.getElementById('toggle-auth-mode');
+        const loginBtn = document.getElementById('login-btn');
+        const authSubtitle = document.getElementById('auth-subtitle');
+
+        toggleAuthBtn.addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            if (isRegisterMode) {
+                loginBtn.querySelector('span').textContent = 'Create Admin Account';
+                authSubtitle.textContent = 'Register New Admin Account';
+                toggleAuthBtn.textContent = 'Already have an account? Sign in here';
+            } else {
+                loginBtn.querySelector('span').textContent = 'Sign In';
+                authSubtitle.textContent = 'Question Bank Approval Portal';
+                toggleAuthBtn.textContent = 'Need an admin account? Register here';
+            }
+            document.getElementById('auth-error').style.display = 'none';
+        });
+
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (user.email && user.email.endsWith('@uiu.ac.bd')) {
+                if (user.email && user.email.toLowerCase().includes('uiu.ac.bd')) {
                     currentUser = user;
+                    
+                    // Create or update admin record in Firestore
+                    try {
+                        await setDoc(doc(db, 'admins', user.uid), {
+                            email: user.email.toLowerCase(),
+                            role: 'admin',
+                            lastLogin: serverTimestamp()
+                        }, { merge: true });
+                    } catch (e) {
+                        console.warn('Admin doc creation error:', e);
+                    }
+
                     document.getElementById('auth-view').style.display = 'none';
                     document.getElementById('app-layout').style.display = 'flex';
                     document.getElementById('sidebar-name').textContent = user.email.split('@')[0];
                     document.getElementById('sidebar-avatar').textContent = user.email.charAt(0).toUpperCase();
                     initApp();
                 } else {
-                    document.getElementById('auth-error').textContent = 'Unauthorized. Use a valid @uiu.ac.bd admin account.';
+                    document.getElementById('auth-error').textContent = 'Unauthorized. Use a valid @uiu.ac.bd admin email.';
                     document.getElementById('auth-error').style.display = 'block';
                     signOut(auth);
                 }
@@ -1150,17 +1186,39 @@
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
+            const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-password').value;
             const btn = document.getElementById('login-btn');
+            document.getElementById('auth-error').style.display = 'none';
+
+            if (!email.toLowerCase().includes('uiu.ac.bd')) {
+                document.getElementById('auth-error').textContent = 'Email must end with @uiu.ac.bd or @bscse.uiu.ac.bd';
+                document.getElementById('auth-error').style.display = 'block';
+                return;
+            }
+
             btn.innerHTML = '<div class="loader"></div>';
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
+                if (isRegisterMode) {
+                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                    await setDoc(doc(db, 'admins', cred.user.uid), {
+                        email: email.toLowerCase(),
+                        role: 'admin',
+                        createdAt: serverTimestamp()
+                    });
+                } else {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
             } catch (err) {
-                document.getElementById('auth-error').textContent = err.message;
+                console.error(err);
+                let msg = err.message;
+                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                    msg = 'Account not found or password incorrect. If you haven\'t created an account yet, click "Need an admin account? Register here".';
+                }
+                document.getElementById('auth-error').textContent = msg;
                 document.getElementById('auth-error').style.display = 'block';
             } finally {
-                btn.innerHTML = '<span>Sign In</span>';
+                btn.innerHTML = `<span>${isRegisterMode ? 'Create Admin Account' : 'Sign In'}</span>`;
             }
         });
 
