@@ -399,6 +399,13 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
         }
         
         .stat-icon {
@@ -519,9 +526,9 @@
         
         .modal-container {
             background: var(--surface);
-            width: 95%;
-            max-width: 1200px;
-            height: 90vh;
+            width: 96vw;
+            max-width: 1400px;
+            height: 92vh;
             border-radius: var(--radius-lg);
             display: flex;
             flex-direction: column;
@@ -544,15 +551,17 @@
         
         .modal-body {
             display: flex;
+            gap: 1.5rem;
             flex: 1;
             overflow: hidden;
         }
         
         .modal-preview {
-            flex: 2;
+            flex: 1.5;
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            height: 100%;
             background: var(--bg);
         }
         
@@ -576,6 +585,8 @@
         
         .preview-content {
             flex: 1;
+            height: 100%;
+            min-height: 520px;
             padding: 1rem;
             display: flex;
             align-items: center;
@@ -600,6 +611,7 @@
             flex: 1;
             padding: 1.5rem;
             overflow-y: auto;
+            max-height: 100%;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
@@ -1064,6 +1076,7 @@
                             <button class="btn btn-success" id="btn-approve"><i class="fas fa-check"></i> Approve</button>
                             <button class="btn btn-danger" id="btn-reject"><i class="fas fa-times"></i> Reject</button>
                             <button class="btn btn-warning" id="btn-revision" style="grid-column: span 2;"><i class="fas fa-edit"></i> Request Revision</button>
+                            <button class="btn btn-danger" id="btn-delete" style="background: #dc2626; grid-column: span 2;"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
                         </div>
                     </div>
                 </div>
@@ -1606,9 +1619,12 @@
                     <td><span class="badge ${getBadgeClass(status)}">${capitalize(status.replace('_', ' '))}</span></td>
                     <td>
                         <a href="${fileUrl}" target="_blank" download class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Download PDF"><i class="fas fa-download"></i></a>
-                        <button class="btn btn-outline btn-review" data-id="${sub.id}" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">
-                            ${status === 'pending' ? 'Review' : 'View'}
+                        ${status !== 'approved' ? `<button class="btn btn-outline btn-quick-approve" data-id="${sub.id}" style="color:var(--success); border-color:var(--success); padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Approve"><i class="fas fa-check"></i></button>` : ''}
+                        ${status !== 'rejected' ? `<button class="btn btn-outline btn-quick-reject" data-id="${sub.id}" style="color:var(--danger); border-color:var(--danger); padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Reject"><i class="fas fa-times"></i></button>` : ''}
+                        <button class="btn btn-outline btn-review" data-id="${sub.id}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;">
+                            Review
                         </button>
+                        <button class="btn btn-outline btn-delete-row" data-id="${sub.id}" style="color:var(--danger); border-color:var(--danger); padding:0.25rem 0.5rem; font-size:0.8rem;" title="Delete Submission"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1620,12 +1636,44 @@
         document.getElementById('filter-type').addEventListener('change', renderQueueTable);
         document.getElementById('filter-search').addEventListener('input', renderQueueTable);
 
+        ['pending', 'approved', 'rejected', 'revision'].forEach(stat => {
+            const el = document.getElementById(`stat-${stat}`);
+            if (el) {
+                el.closest('.stat-card').addEventListener('click', () => {
+                    document.querySelector('.nav-item[data-target="queue"]').click();
+                    document.getElementById('filter-status').value = stat === 'revision' ? 'needs_revision' : stat;
+                    renderQueueTable();
+                });
+            }
+        });
+
         // Modal Logic
         const attachReviewListeners = () => {
             document.querySelectorAll('.btn-review').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const id = e.target.closest('.btn-review').getAttribute('data-id');
                     openReviewModal(id);
+                });
+            });
+            document.querySelectorAll('.btn-quick-approve').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('.btn-quick-approve').getAttribute('data-id');
+                    currentReviewDoc = allSubmissions.find(s => s.id === id);
+                    if(currentReviewDoc) updateStatus('approved', 'APPROVE');
+                });
+            });
+            document.querySelectorAll('.btn-quick-reject').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('.btn-quick-reject').getAttribute('data-id');
+                    currentReviewDoc = allSubmissions.find(s => s.id === id);
+                    if(currentReviewDoc) updateStatus('rejected', 'REJECT');
+                });
+            });
+            document.querySelectorAll('.btn-delete-row').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('.btn-delete-row').getAttribute('data-id');
+                    const sub = allSubmissions.find(s => s.id === id);
+                    if(sub) deleteSubmission(sub);
                 });
             });
         };
@@ -1718,9 +1766,8 @@
             tabMain.click();
 
             // Status overrides for buttons
-            const isProcessed = sub.status === 'approved' || sub.status === 'rejected';
-            document.getElementById('btn-approve').disabled = isProcessed;
-            document.getElementById('btn-reject').disabled = isProcessed;
+            document.getElementById('btn-approve').disabled = false;
+            document.getElementById('btn-reject').disabled = false;
             
             document.getElementById('reviewModal').classList.add('active');
         };
@@ -1875,6 +1922,50 @@
         document.getElementById('btn-approve').addEventListener('click', () => updateStatus('approved', 'APPROVE'));
         document.getElementById('btn-reject').addEventListener('click', () => updateStatus('rejected', 'REJECT'));
         document.getElementById('btn-revision').addEventListener('click', () => updateStatus('needs_revision', 'REVISION'));
+
+        const deleteSubmission = async (sub) => {
+            if(!confirm("Are you sure you want to permanently delete this submission and its Cloudinary file? This cannot be undone.")) return;
+            try {
+                if (sub.pdfPublicId) {
+                    await fetch('/api/cloudinary/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ public_id: sub.pdfPublicId, resource_type: 'image' }) }).catch(e => console.warn(e));
+                }
+                if (sub.solutionPdfPublicId) {
+                    await fetch('/api/cloudinary/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ public_id: sub.solutionPdfPublicId, resource_type: 'image' }) }).catch(e => console.warn(e));
+                }
+                if (sub.materialAssets && Array.isArray(sub.materialAssets)) {
+                    for (const asset of sub.materialAssets) {
+                        if (asset.publicId) {
+                             await fetch('/api/cloudinary/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ public_id: asset.publicId, resource_type: 'image' }) }).catch(e => console.warn(e));
+                        }
+                    }
+                }
+                
+                await deleteDoc(doc(db, QUESTION_COLLECTION, sub.id));
+                
+                const adminEmail = currentUser?.email || 'admin@bscse.uiu.ac.bd';
+                try {
+                    await addDoc(collection(db, AUDIT_COLLECTION), {
+                        action: 'DELETE',
+                        adminEmail: adminEmail,
+                        targetId: sub.id,
+                        targetCourse: sub.courseCode,
+                        notes: 'Admin permanently deleted submission',
+                        timestamp: serverTimestamp()
+                    });
+                } catch (auditErr) {
+                    console.warn('Audit log write skipped:', auditErr);
+                }
+                showToast("Submission and Cloudinary file permanently deleted.", "success");
+                document.getElementById('reviewModal').classList.remove('active');
+            } catch (err) {
+                console.error(err);
+                showToast('Error deleting submission: ' + err.message, 'error');
+            }
+        };
+
+        document.getElementById('btn-delete').addEventListener('click', () => {
+            if (currentReviewDoc) deleteSubmission(currentReviewDoc);
+        });
 
     </script>
 </body>
