@@ -1513,7 +1513,7 @@
                 // Backend Email Notification & Asset Management Call
                 try {
                     const idToken = await currentUser.getIdToken();
-                    await fetch('/api/questions/notify', {
+                    const notifyRes = await fetch('/api/questions/notify', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${idToken}`,
@@ -1529,6 +1529,10 @@
                             topic: currentReviewDoc.topic
                         })
                     });
+                    if (!notifyRes.ok) {
+                        const errText = await notifyRes.text();
+                        console.warn('Backend notification error:', notifyRes.status, errText);
+                    }
                 } catch (notifyErr) {
                     console.warn('Backend notification dispatch error:', notifyErr);
                 }
