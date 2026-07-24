@@ -577,7 +577,7 @@
         }
         
         .modal-preview {
-            flex: 1.5;
+            flex: 2.5;
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
@@ -606,8 +606,8 @@
         .preview-content {
             flex: 1;
             height: 100%;
-            min-height: 520px;
-            padding: 1rem;
+            min-height: 650px;
+            padding: 0.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -896,9 +896,7 @@
                 </button>
             </form>
             <div style="margin-top: 1rem; text-align: center;">
-                <button type="button" id="toggle-auth-mode" style="background:none; border:none; color:var(--primary); font-size:0.85rem; cursor:pointer; text-decoration:underline;">
-                    Need an admin account? Register here
-                </button>
+                <span class="text-muted" style="font-size:0.8rem;"><i class="fas fa-lock"></i> Restricted Portal: Authorized Admins Only</span>
             </div>
             <div id="auth-error" style="color: var(--danger); margin-top: 1rem; font-size: 0.85rem; display: none;"></div>
         </div>
@@ -945,10 +943,22 @@
                 
                 <div class="header-actions">
                     <button class="icon-btn" id="refresh-btn" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
-                    <button class="icon-btn" id="notif-perm-btn" title="Enable Desktop Push Notifications" style="position:relative;">
+                    <button class="icon-btn" id="notif-perm-btn" title="View Notifications" style="position:relative;">
                         <i class="fas fa-bell"></i>
                         <span id="notif-badge" style="position:absolute; top:6px; right:6px; width:8px; height:8px; background:var(--warning); border-radius:50%;"></span>
                     </button>
+                    <!-- Notification Panel Dropdown -->
+                    <div id="notif-dropdown" style="display:none; position:absolute; top:65px; right:20px; width:340px; max-width:calc(100vw - 2rem); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); z-index:10000; padding:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:0.5rem;">
+                            <h4 style="font-size:0.875rem; font-weight:700; display:flex; align-items:center; gap:0.4rem; color:var(--text-main);">
+                                <i class="fas fa-bell" style="color:var(--primary);"></i> Notifications Queue
+                            </h4>
+                            <span id="notif-count-badge" style="background:var(--primary); color:white; font-size:0.75rem; font-weight:700; padding:0.1rem 0.5rem; border-radius:9999px;">0</span>
+                        </div>
+                        <div id="notif-list" style="display:flex; flex-direction:column; gap:0.5rem; max-height:280px; overflow-y:auto;">
+                            <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:1rem;">No new notifications</div>
+                        </div>
+                    </div>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" id="global-search" placeholder="Search course, ID, topic...">
@@ -1201,31 +1211,40 @@
 
     <!-- Gmail Notification Modal -->
     <div class="modal-overlay" id="gmailModal" style="z-index: 10005;">
-        <div class="modal-container" style="max-width: 600px;">
+        <div class="modal-container" style="max-width: 620px;">
             <div class="modal-header" style="background: linear-gradient(135deg, rgba(234, 67, 53, 0.1), transparent);">
                 <h3 class="modal-title" style="display:flex; align-items:center; gap:0.5rem; color:#ea4335;">
                     <i class="fab fa-google"></i> Email Confirmation (Gmail Template)
                 </h3>
                 <button class="icon-btn close-gmail-modal" id="btn-close-gmail"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body" style="padding:1.5rem;">
-                <p class="text-muted" style="font-size:0.875rem; margin-bottom:1.25rem;">
-                    Status updated successfully! Send the approval/rejection confirmation email to the submitter via Gmail:
+            <div class="modal-body" style="padding:1.5rem; display:block;">
+                <p class="text-muted" style="font-size:0.875rem; margin-bottom:1rem;">
+                    Status updated! Send email confirmation to submitter via Gmail:
                 </p>
-                <div class="form-group" style="margin-bottom:1rem;">
-                    <label style="font-weight:600; font-size:0.85rem;">Recipient Email</label>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:0.35rem;">Quick Reason Presets</label>
+                    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                        <button type="button" class="preset-tag btn-preset" data-text="Document is approved and verified. Thank you for your contribution!" style="padding:0.25rem 0.55rem; font-size:0.75rem; border-radius:12px; border:1px solid var(--border); background:var(--surface-hover); cursor:pointer;">✨ Verified</button>
+                        <button type="button" class="preset-tag btn-preset" data-text="File is low quality or blurry. Please upload a clear PDF." style="padding:0.25rem 0.55rem; font-size:0.75rem; border-radius:12px; border:1px solid var(--border); background:var(--surface-hover); cursor:pointer;">📷 Blurry PDF</button>
+                        <button type="button" class="preset-tag btn-preset" data-text="Wrong course code or title selected. Please verify." style="padding:0.25rem 0.55rem; font-size:0.75rem; border-radius:12px; border:1px solid var(--border); background:var(--surface-hover); cursor:pointer;">📚 Wrong Course</button>
+                        <button type="button" class="preset-tag btn-preset" data-text="This paper is already available on Question Bank." style="padding:0.25rem 0.55rem; font-size:0.75rem; border-radius:12px; border:1px solid var(--border); background:var(--surface-hover); cursor:pointer;">📑 Duplicate</button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:600; font-size:0.8rem;">Recipient Email</label>
                     <input type="email" id="gmail-to" class="input-control" readonly style="background:var(--surface-hover);">
                 </div>
-                <div class="form-group" style="margin-bottom:1rem;">
-                    <label style="font-weight:600; font-size:0.85rem;">Subject</label>
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:600; font-size:0.8rem;">Subject</label>
                     <input type="text" id="gmail-subject" class="input-control">
                 </div>
-                <div class="form-group" style="margin-bottom:1.5rem;">
-                    <label style="font-weight:600; font-size:0.85rem;">Message Body</label>
-                    <textarea id="gmail-body" rows="8" class="input-control" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-weight:600; font-size:0.8rem;">Message Body</label>
+                    <textarea id="gmail-body" rows="7" class="input-control" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
                 </div>
                 <div style="display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-outline" id="btn-copy-gmail"><i class="fas fa-copy"></i> Copy Email Text</button>
+                    <button type="button" class="btn btn-outline" id="btn-copy-gmail"><i class="fas fa-copy"></i> Copy Text</button>
                     <a id="btn-open-gmail" href="#" target="_blank" class="btn btn-primary" style="background:#ea4335; border:none; display:inline-flex; align-items:center; gap:0.5rem;">
                         <i class="fab fa-google"></i> Open in Gmail Compose
                     </a>
@@ -1499,7 +1518,7 @@
                             <span style="color:var(--text-muted);"><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:0.4rem;"></i> Document Preview</span>
                             <a href="${url}" target="_blank" download class="btn btn-outline" style="padding:0.2rem 0.6rem;font-size:0.75rem;"><i class="fas fa-external-link-alt"></i> Open Full Page</a>
                         </div>
-                        <iframe src="${url}" style="width:100%;height:480px;border:none;background:#fff;" title="PDF Preview"></iframe>
+                        <iframe src="${url}" style="width:100%;height:100%;min-height:650px;border:none;background:#fff;" title="PDF Preview"></iframe>
                     </div>
                 `;
             } else {
@@ -1585,26 +1604,14 @@
 
             btn.innerHTML = '<div class="loader"></div>';
             try {
-                if (isRegisterMode) {
-                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-                    await setDoc(doc(db, 'admins', cred.user.uid), {
-                        email: email.toLowerCase(),
-                        role: 'admin',
-                        createdAt: serverTimestamp()
-                    });
-                } else {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                }
+                await signInWithEmailAndPassword(auth, email, pass);
             } catch (err) {
                 console.error(err);
-                let msg = err.message;
-                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                    msg = 'Account not found or password incorrect. If you haven\'t created an account yet, click "Need an admin account? Register here".';
-                }
+                let msg = 'Account not found or password incorrect.';
                 document.getElementById('auth-error').textContent = msg;
                 document.getElementById('auth-error').style.display = 'block';
             } finally {
-                btn.innerHTML = `<span>${isRegisterMode ? 'Create Admin Account' : 'Sign In'}</span>`;
+                btn.innerHTML = '<span>Sign In</span>';
             }
         });
 
@@ -1672,40 +1679,73 @@
             });
         };
 
-        // Push Notification Permission Helper
+        // Push Notification Permission & Dropdown Panel
         const notifBtn = document.getElementById('notif-perm-btn');
         const notifBadge = document.getElementById('notif-badge');
+        const notifDropdown = document.getElementById('notif-dropdown');
 
         const updateNotifBadge = () => {
             if (!notifBadge) return;
             if ('Notification' in window && Notification.permission === 'granted') {
-                notifBadge.style.display = 'block';
                 notifBadge.style.background = 'var(--success)';
-                if (notifBtn) notifBtn.title = 'Browser Push Notifications Enabled';
             } else {
-                notifBadge.style.display = 'block';
                 notifBadge.style.background = 'var(--warning)';
-                if (notifBtn) notifBtn.title = 'Click to enable Browser Push Notifications';
             }
         };
 
         if (notifBtn) {
-            notifBtn.addEventListener('click', () => {
-                if (!('Notification' in window)) {
-                    showToast('Browser notifications not supported on this browser.', 'warning');
-                    return;
+            notifBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (notifDropdown) {
+                    notifDropdown.style.display = notifDropdown.style.display === 'none' ? 'block' : 'none';
                 }
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        showToast('Browser Push Notifications Enabled!', 'success');
-                        updateNotifBadge();
-                    } else {
-                        showToast('Notification permission denied by browser.', 'warning');
-                        updateNotifBadge();
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().then(updateNotifBadge);
+                }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (notifDropdown && !notifDropdown.contains(e.target) && e.target !== notifBtn) {
+                notifDropdown.style.display = 'none';
+            }
+        });
+
+        const renderNotifDropdown = () => {
+            const list = document.getElementById('notif-list');
+            const countBadge = document.getElementById('notif-count-badge');
+            if (!list) return;
+
+            const pending = allSubmissions.filter(s => s.status === 'pending' || !s.status);
+            if (countBadge) countBadge.textContent = pending.length;
+
+            if (pending.length === 0) {
+                list.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:1rem;">All caught up! No pending submissions.</div>`;
+                return;
+            }
+
+            list.innerHTML = pending.slice(0, 8).map(sub => `
+                <div class="notif-item" data-id="${sub.id}" style="padding:0.6rem; border-radius:var(--radius); background:var(--surface-hover); cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:0.5rem; transition:var(--transition);">
+                    <div>
+                        <div style="font-weight:600; font-size:0.85rem; color:var(--text-main);">${sub.courseCode} - ${sub.examType || sub.materialType}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${sub.submitterName || sub.submitterEmail || 'Student'} • ${formatDate(sub)}</div>
+                    </div>
+                    <span class="badge badge-pending" style="font-size:0.7rem;">Review</span>
+                </div>
+            `).join('');
+
+            list.querySelectorAll('.notif-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const id = item.getAttribute('data-id');
+                    currentReviewDoc = allSubmissions.find(s => s.id === id);
+                    if (currentReviewDoc) {
+                        openReviewModal(currentReviewDoc);
+                        if (notifDropdown) notifDropdown.style.display = 'none';
                     }
                 });
             });
-        }
+        };
+
         updateNotifBadge();
 
         // Data Fetching
@@ -1766,6 +1806,7 @@
                 document.getElementById('stat-rejected').textContent = rejectedCount;
                 document.getElementById('stat-revision').textContent = revisionCount;
 
+                renderNotifDropdown();
                 renderDashboardRecent();
                 renderQueueTable();
             });
