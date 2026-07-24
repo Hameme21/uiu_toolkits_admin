@@ -1534,6 +1534,41 @@
             }
         }
 
+        window.forceDownloadFile = async function(url, fileName) {
+            if (!url || url === '#' || url === 'null') {
+                if (typeof showToast === 'function') showToast('No file URL available to download', 'error');
+                return;
+            }
+            let targetUrl = url;
+            if (targetUrl.includes('cloudinary.com') && targetUrl.includes('/upload/')) {
+                targetUrl = targetUrl.replace('/upload/', '/upload/fl_attachment/');
+            }
+            try {
+                if (typeof showToast === 'function') showToast('Starting download...', 'info');
+                const response = await fetch(targetUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = fileName || url.split('/').pop().split('?')[0] || 'download.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 2500);
+                if (typeof showToast === 'function') showToast('Download started!', 'success');
+            } catch (err) {
+                console.warn('Blob download fallback to direct attachment link:', err);
+                const link = document.createElement('a');
+                link.href = targetUrl;
+                link.download = fileName || 'download.pdf';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
         // Auth Setup
 
         onAuthStateChanged(auth, async (user) => {
@@ -1836,7 +1871,7 @@
                     <td>${capitalize(sub.materialType)}</td>
                     <td>${formatDate(sub)}</td>
                     <td>
-                        <a href="${fileUrl}" target="_blank" download class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Download PDF"><i class="fas fa-download"></i></a>
+                        <button type="button" onclick="forceDownloadFile('${fileUrl}', '${sub.courseCode || 'Submission'}_Question.pdf')" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Download PDF"><i class="fas fa-download"></i></button>
                         <button class="btn btn-outline btn-review" data-id="${sub.id}" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Review</button>
                     </td>
                 `;
@@ -1882,7 +1917,7 @@
                     <td>${sub.submitterEmail || 'Anonymous'}</td>
                     <td><span class="badge ${getBadgeClass(status)}">${capitalize(status.replace('_', ' '))}</span></td>
                     <td>
-                        <a href="${fileUrl}" target="_blank" download class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Download PDF"><i class="fas fa-download"></i></a>
+                        <button type="button" onclick="forceDownloadFile('${fileUrl}', '${sub.courseCode || 'Submission'}_Question.pdf')" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Download PDF"><i class="fas fa-download"></i></button>
                         ${status !== 'approved' ? `<button class="btn btn-outline btn-quick-approve" data-id="${sub.id}" style="color:var(--success); border-color:var(--success); padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Approve"><i class="fas fa-check"></i></button>` : ''}
                         ${status !== 'rejected' ? `<button class="btn btn-outline btn-quick-reject" data-id="${sub.id}" style="color:var(--danger); border-color:var(--danger); padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;" title="Reject"><i class="fas fa-times"></i></button>` : ''}
                         <button class="btn btn-outline btn-review" data-id="${sub.id}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.3rem;">
@@ -1958,7 +1993,10 @@
             const dlBtn = document.getElementById('btn-download-file');
             if(dlBtn) {
                 const fUrl = sub.pdfUrl || sub.fileUrl || sub.notePdfUrl || (sub.materialAssets && sub.materialAssets[0]?.pdfUrl) || '#';
-                dlBtn.href = fUrl;
+                dlBtn.onclick = (e) => {
+                    e.preventDefault();
+                    forceDownloadFile(fUrl, `${sub.courseCode || 'Submission'}_Question.pdf`);
+                };
             }
 
             const editCourse = document.getElementById('edit-course');
