@@ -198,10 +198,12 @@ function ensureCloudinaryConfigured(response, requestOrigin) {
 async function handleHealth(request, response) {
     sendJson(response, 200, {
         ok: true,
-        service: 'uiu-toolkits-admin',
+        status: 'Server is running',
+        service: 'UIU Admin Portal Backend',
         cloudinaryConfigured: Boolean(cloudinaryApiKey && cloudinaryApiSecret),
         cloudName: cloudinaryCloudName,
-        uploadFolder: cloudinaryUploadFolder
+        uploadFolder: cloudinaryUploadFolder,
+        frontendUrl: 'https://qb-admin-alpha.vercel.app/'
     }, getRequestOrigin(request));
 }
 
@@ -578,6 +580,48 @@ const server = http.createServer((request, response) => {
 
     if (url.pathname.startsWith('/api/')) {
         sendJson(response, 404, { error: 'API route not found.' }, requestOrigin);
+        return;
+    }
+
+    if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/health') {
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server is Running - UIU Admin Portal Backend</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+        .card { background: #111827; border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 20px; padding: 2.5rem 2rem; max-width: 520px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.4rem 1.25rem; border-radius: 9999px; font-weight: 700; font-size: 0.95rem; margin-bottom: 1.5rem; }
+        .pulse { width: 10px; height: 10px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 12px #10b981; animation: pulse 1.8s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        h1 { font-size: 1.75rem; color: #6366f1; margin-bottom: 0.75rem; font-weight: 800; }
+        p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.75rem; }
+        .info-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; text-align: left; font-family: monospace; font-size: 0.825rem; color: #cbd5e1; margin-bottom: 1.75rem; }
+        .info-box div { margin-bottom: 0.4rem; }
+        .info-box div:last-child { margin-bottom: 0; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; text-decoration: none; padding: 0.85rem 1.75rem; border-radius: 10px; font-weight: 700; font-size: 0.95rem; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge"><span class="pulse"></span> Server is Running</div>
+        <h1>UIU Admin Approval Portal</h1>
+        <p>Backend API Server is active and operational. Connected to Firebase Admin Auth & Cloudinary.</p>
+        <div class="info-box">
+            <div><strong>Status:</strong> 200 OK (Server is Running)</div>
+            <div><strong>Backend:</strong> https://qb-admin.onrender.com</div>
+            <div><strong>Frontend:</strong> https://qb-admin-alpha.vercel.app/</div>
+        </div>
+        <a href="https://qb-admin-alpha.vercel.app/" class="btn">Go to Admin Web 🛡️</a>
+    </div>
+</body>
+</html>`;
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        response.end(html);
         return;
     }
 
