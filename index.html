@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UIU CSE Question Bank - Admin Portal</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f37021'/%3E%3Ctext x='16' y='23' text-anchor='middle' fill='white' font-family='Arial,sans-serif' font-weight='bold' font-size='22'%3EQ%3C/text%3E%3C/svg%3E">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -790,6 +791,72 @@
             outline: none;
         }
 
+        /* Theme Toggle Animation */
+        .theme-icon-wrapper {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            overflow: hidden;
+        }
+
+        .icon-sun, .icon-moon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            font-size: 1rem;
+        }
+
+        /* Light mode: show sun, hide moon */
+        .icon-sun {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(0deg) scale(1);
+            color: #f59e0b;
+        }
+        .icon-moon {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(90deg) scale(0);
+            color: #818cf8;
+        }
+
+        /* Dark mode: show moon, hide sun */
+        [data-theme="dark"] .icon-sun {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(-90deg) scale(0);
+        }
+        [data-theme="dark"] .icon-moon {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(0deg) scale(1);
+        }
+
+        .icon-btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .icon-btn.animating::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            animation: themeRipple 0.6s ease forwards;
+        }
+
+        @keyframes themeRipple {
+            from { width: 0; height: 0; opacity: 0.4; }
+            to { width: 50px; height: 50px; opacity: 0; }
+        }
+
+        [data-theme="light"] .icon-btn.animating::after {
+            background: radial-gradient(circle, #fbbf24, transparent);
+        }
+
+        [data-theme="dark"] .icon-btn.animating::after {
+            background: radial-gradient(circle, #6366f1, transparent);
+        }
     </style>
     <script>
         (function() {
@@ -882,8 +949,11 @@
                         <i class="fas fa-search"></i>
                         <input type="text" id="global-search" placeholder="Search course, ID, topic...">
                     </div>
-                    <button class="icon-btn" id="theme-toggle" title="Toggle Dark Mode">
-                        <i class="fas fa-moon"></i>
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+                        <div class="theme-icon-wrapper">
+                            <i class="fas fa-sun icon-sun"></i>
+                            <i class="fas fa-moon icon-moon"></i>
+                        </div>
                     </button>
                 </div>
             </header>
@@ -1294,9 +1364,10 @@
         };
 
         const decodeSemester = (semCode) => {
-            if(!semCode || semCode.length !== 3) return 'Unknown';
-            const yearStr = semCode.substring(0, 2);
-            const termStr = semCode.substring(2);
+            if(!semCode || String(semCode).length !== 3) return 'Unknown';
+            const str = String(semCode);
+            const yearStr = str.substring(0, 2);
+            const termStr = str.substring(2);
             const year = '20' + yearStr;
             let term = '';
             if(termStr === '1') term = 'Spring';
@@ -1304,6 +1375,35 @@
             else if(termStr === '3') term = 'Fall';
             return `${term} ${year}`;
         };
+
+        const generateAdminSemesters = () => {
+            // Spring (1): Feb-Jun, Summer (2): Jul-Oct, Fall (3): Nov-Feb
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            const currentYear = now.getFullYear();
+            let currentSemYear, currentSemSeason;
+            if (currentMonth >= 2 && currentMonth <= 6) {
+                currentSemSeason = 1;
+                currentSemYear = currentYear;
+            } else if (currentMonth >= 7 && currentMonth <= 10) {
+                currentSemSeason = 2;
+                currentSemYear = currentYear;
+            } else {
+                currentSemSeason = 3;
+                currentSemYear = currentMonth >= 11 ? currentYear : currentYear - 1;
+            }
+            const currentSemCode = parseInt(`${currentSemYear - 2000}${currentSemSeason}`);
+            const semesters = [];
+            for (let y = 21; y <= 30; y++) {
+                for (let s = 1; s <= 3; s++) {
+                    const code = `${y}${s}`;
+                    if (parseInt(code) > currentSemCode) return semesters;
+                    semesters.push({ code, label: decodeSemester(code) });
+                }
+            }
+            return semesters;
+        };
+        const ADMIN_SEMESTERS = generateAdminSemesters();
 
         const hidePortalLoader = () => {
             const loader = document.getElementById('portal-loader');
@@ -1526,6 +1626,8 @@
             
             btn.addEventListener('click', () => {
                 const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                btn.classList.add('animating');
+                setTimeout(() => btn.classList.remove('animating'), 600);
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('theme', theme);
             });
@@ -1751,14 +1853,12 @@
 
             const editSemester = document.getElementById('edit-semester');
             if(editSemester.options.length === 0) {
-                for(let year=21; year<=27; year++){
-                    for(let term=1; term<=3; term++){
-                        const opt = document.createElement('option');
-                        opt.value = `${year}${term}`;
-                        opt.textContent = decodeSemester(`${year}${term}`);
-                        editSemester.appendChild(opt);
-                    }
-                }
+                ADMIN_SEMESTERS.forEach(sem => {
+                    const opt = document.createElement('option');
+                    opt.value = sem.code;
+                    opt.textContent = sem.label;
+                    editSemester.appendChild(opt);
+                });
             }
             editSemester.value = sub.semester || '';
 
