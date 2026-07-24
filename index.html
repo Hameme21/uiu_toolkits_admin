@@ -717,7 +717,7 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
+            transition: opacity 0.15s ease, visibility 0.15s ease;
         }
         .portal-loader.hidden {
             opacity: 0;
@@ -945,6 +945,10 @@
                 
                 <div class="header-actions">
                     <button class="icon-btn" id="refresh-btn" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                    <button class="icon-btn" id="notif-perm-btn" title="Enable Desktop Push Notifications" style="position:relative;">
+                        <i class="fas fa-bell"></i>
+                        <span id="notif-badge" style="position:absolute; top:6px; right:6px; width:8px; height:8px; background:var(--warning); border-radius:50%;"></span>
+                    </button>
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" id="global-search" placeholder="Search course, ID, topic...">
@@ -1195,6 +1199,41 @@
         </div>
     </div>
 
+    <!-- Gmail Notification Modal -->
+    <div class="modal-overlay" id="gmailModal" style="z-index: 10005;">
+        <div class="modal-container" style="max-width: 600px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(234, 67, 53, 0.1), transparent);">
+                <h3 class="modal-title" style="display:flex; align-items:center; gap:0.5rem; color:#ea4335;">
+                    <i class="fab fa-google"></i> Email Confirmation (Gmail Template)
+                </h3>
+                <button class="icon-btn close-gmail-modal" id="btn-close-gmail"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:1.5rem;">
+                <p class="text-muted" style="font-size:0.875rem; margin-bottom:1.25rem;">
+                    Status updated successfully! Send the approval/rejection confirmation email to the submitter via Gmail:
+                </p>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="font-weight:600; font-size:0.85rem;">Recipient Email</label>
+                    <input type="email" id="gmail-to" class="input-control" readonly style="background:var(--surface-hover);">
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="font-weight:600; font-size:0.85rem;">Subject</label>
+                    <input type="text" id="gmail-subject" class="input-control">
+                </div>
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label style="font-weight:600; font-size:0.85rem;">Message Body</label>
+                    <textarea id="gmail-body" rows="8" class="input-control" style="font-family: monospace; font-size: 0.85rem; line-height: 1.5;"></textarea>
+                </div>
+                <div style="display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-outline" id="btn-copy-gmail"><i class="fas fa-copy"></i> Copy Email Text</button>
+                    <a id="btn-open-gmail" href="#" target="_blank" class="btn btn-primary" style="background:#ea4335; border:none; display:inline-flex; align-items:center; gap:0.5rem;">
+                        <i class="fab fa-google"></i> Open in Gmail Compose
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1409,7 +1448,7 @@
             const loader = document.getElementById('portal-loader');
             if(loader) {
                 loader.classList.add('hidden');
-                setTimeout(() => { loader.style.display = 'none'; }, 300);
+                setTimeout(() => { loader.style.display = 'none'; }, 50);
             }
         };
 
@@ -1633,7 +1672,45 @@
             });
         };
 
+        // Push Notification Permission Helper
+        const notifBtn = document.getElementById('notif-perm-btn');
+        const notifBadge = document.getElementById('notif-badge');
+
+        const updateNotifBadge = () => {
+            if (!notifBadge) return;
+            if ('Notification' in window && Notification.permission === 'granted') {
+                notifBadge.style.display = 'block';
+                notifBadge.style.background = 'var(--success)';
+                if (notifBtn) notifBtn.title = 'Browser Push Notifications Enabled';
+            } else {
+                notifBadge.style.display = 'block';
+                notifBadge.style.background = 'var(--warning)';
+                if (notifBtn) notifBtn.title = 'Click to enable Browser Push Notifications';
+            }
+        };
+
+        if (notifBtn) {
+            notifBtn.addEventListener('click', () => {
+                if (!('Notification' in window)) {
+                    showToast('Browser notifications not supported on this browser.', 'warning');
+                    return;
+                }
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showToast('Browser Push Notifications Enabled!', 'success');
+                        updateNotifBadge();
+                    } else {
+                        showToast('Notification permission denied by browser.', 'warning');
+                        updateNotifBadge();
+                    }
+                });
+            });
+        }
+        updateNotifBadge();
+
         // Data Fetching
+        let isFirstSubmissionsLoad = true;
+
         const fetchSubmissions = () => {
             const q = collection(db, QUESTION_COLLECTION);
             unsubscribeSubmissions = onSnapshot(q, (snapshot) => {
@@ -1653,6 +1730,26 @@
                     if(data.status === 'rejected') rejectedCount++;
                     if(data.status === 'needs_revision') revisionCount++;
                 });
+
+                // Desktop Push Notification for newly added pending submissions
+                if (!isFirstSubmissionsLoad) {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === 'added') {
+                            const data = change.doc.data();
+                            if (data.status === 'pending' || !data.status) {
+                                if ('Notification' in window && Notification.permission === 'granted') {
+                                    new Notification('📥 New Question Bank Submission', {
+                                        body: `${data.courseCode} - ${data.examType || 'Material'} (${data.semester || ''}) submitted by ${data.submitterName || 'Student'}`,
+                                        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Crect width="32" height="32" rx="6" fill="%23f37021"/%3E%3Ctext x="16" y="23" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="bold" font-size="22"%3EQ%3C/text%3E%3C/svg%3E'
+                                    });
+                                }
+                                showToast(`New Submission Received: ${data.courseCode} (${data.examType || 'Material'})`, 'info');
+                            }
+                        }
+                    });
+                } else {
+                    isFirstSubmissionsLoad = false;
+                }
 
                 const getDateVal = (item) => {
                     const ts = item.submittedAt || item.createdAt || item.updatedAt;
@@ -1991,11 +2088,65 @@
                 showToast(`Submission ${status.replace('_', ' ')} successfully.`, status === 'approved' ? 'success' : (status === 'rejected' ? 'error' : 'warning'));
                 document.getElementById('reviewModal').classList.remove('active');
 
+                // Open Gmail Notification Template Modal
+                openGmailModal(status, currentReviewDoc, comment);
+
             } catch(err) {
                 console.error(err);
                 showToast('Error updating status: ' + err.message, 'error');
             }
         };
+
+        const openGmailModal = (status, docData, comment) => {
+            const recipientEmail = docData.submitterEmail || docData.contactEmail || '';
+            const courseCode = docData.courseCode || 'Course';
+            const courseName = docData.courseName || getCourseTitle(courseCode) || '';
+            const examType = docData.examType || docData.type || 'Material';
+            const semLabel = docData.semester ? decodeSemester(docData.semester).label : '';
+            const submitterName = docData.submitterName || 'Student';
+
+            let subject = '';
+            let body = '';
+
+            if (status === 'approved') {
+                subject = `[UIU Question Bank] Approved: ${courseCode} ${examType}`;
+                body = `Dear ${submitterName},\n\nGreat news! Your contribution for ${courseCode} - ${courseName} (${examType} ${semLabel}) has been reviewed and APPROVED by the UIU CSE Question Bank moderation team.\n\nIt is now live on the UIU CSE Question Bank website.\n\nThank you for helping your peers!\n\nBest regards,\nUIU CSE Question Bank Team`;
+            } else if (status === 'rejected') {
+                subject = `[UIU Question Bank] Submission Update: ${courseCode} ${examType}`;
+                body = `Dear ${submitterName},\n\nThank you for contributing to the UIU CSE Question Bank.\n\nRegrettably, your submission for ${courseCode} (${examType} ${semLabel}) could not be approved at this time.\n\nReason / Feedback:\n${comment || 'Does not meet formatting or subject guidelines.'}\n\nYou are welcome to upload an updated copy at any time.\n\nBest regards,\nUIU CSE Question Bank Team`;
+            } else if (status === 'needs_revision') {
+                subject = `[UIU Question Bank] Revision Requested: ${courseCode} ${examType}`;
+                body = `Dear ${submitterName},\n\nYour submission for ${courseCode} (${examType} ${semLabel}) requires a revision before approval.\n\nRequested Changes:\n${comment || 'Please check file clarity or title details.'}\n\nPlease submit an updated copy via the Question Bank portal.\n\nBest regards,\nUIU CSE Question Bank Team`;
+            }
+
+            document.getElementById('gmail-to').value = recipientEmail;
+            document.getElementById('gmail-subject').value = subject;
+            document.getElementById('gmail-body').value = body;
+
+            const composeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipientEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            document.getElementById('btn-open-gmail').href = composeUrl;
+
+            document.getElementById('gmailModal').classList.add('active');
+        };
+
+        const closeGmailBtn = document.getElementById('btn-close-gmail');
+        if (closeGmailBtn) {
+            closeGmailBtn.addEventListener('click', () => {
+                document.getElementById('gmailModal').classList.remove('active');
+            });
+        }
+
+        const copyGmailBtn = document.getElementById('btn-copy-gmail');
+        if (copyGmailBtn) {
+            copyGmailBtn.addEventListener('click', () => {
+                const bodyText = document.getElementById('gmail-body').value;
+                navigator.clipboard.writeText(bodyText).then(() => {
+                    showToast('Email template copied to clipboard!', 'success');
+                }).catch(e => {
+                    showToast('Failed to copy text', 'error');
+                });
+            });
+        }
 
         document.getElementById('btn-toggle-edit').addEventListener('click', () => {
             const form = document.getElementById('edit-details-form');
