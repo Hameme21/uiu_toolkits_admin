@@ -1259,7 +1259,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
         import {
-            getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
         } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
         import {
             getFirestore, collection, doc, query, where, onSnapshot, getDocs, getDoc, updateDoc, addDoc, setDoc, serverTimestamp, deleteDoc, orderBy
@@ -1533,25 +1533,7 @@
             }
         }
 
-        // Auth
-        let isRegisterMode = false;
-        const toggleAuthBtn = document.getElementById('toggle-auth-mode');
-        const loginBtn = document.getElementById('login-btn');
-        const authSubtitle = document.getElementById('auth-subtitle');
-
-        toggleAuthBtn.addEventListener('click', () => {
-            isRegisterMode = !isRegisterMode;
-            if (isRegisterMode) {
-                loginBtn.querySelector('span').textContent = 'Create Admin Account';
-                authSubtitle.textContent = 'Register New Admin Account';
-                toggleAuthBtn.textContent = 'Already have an account? Sign in here';
-            } else {
-                loginBtn.querySelector('span').textContent = 'Sign In';
-                authSubtitle.textContent = 'Question Bank Approval Portal';
-                toggleAuthBtn.textContent = 'Need an admin account? Register here';
-            }
-            document.getElementById('auth-error').style.display = 'none';
-        });
+        // Auth Setup
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
